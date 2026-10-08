@@ -1,0 +1,128 @@
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background: #87ceeb;
+  color: white;
+}
+
+canvas {
+  display: block;
+}
+
+#menu {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, #071426, #18456b, #12604b);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#menu h1 {
+  font-size: 48px;
+  color: #70ffb0;
+  text-shadow: 0 0 20px #20e98c;
+}
+
+#menu h2 {
+  color: #b8dcff;
+}
+
+#playBtn {
+  margin: 25px;
+  padding: 18px 55px;
+  border: none;
+  border-radius: 12px;
+  background: #10a668;
+  color: white;
+  font-size: 23px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#playBtn:hover {
+  background: #16d388;
+  transform: scale(1.05);
+}
+
+#gameUI[hidden] {
+  display: none;
+}
+
+#gameUI {
+  pointer-events: none;
+}
+
+#topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+}
+
+#crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  font-weight: bold;
+  text-shadow: 0 0 4px black;
+}
+
+#hotbar {
+  position: fixed;
+  bottom: 65px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+}
+
+.slot {
+  width: 60px;
+  height: 60px;
+  background: rgba(20, 20, 20, 0.75);
+  border: 3px solid #666;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+  position: relative;
+}
+
+.slot.selected {
+  border-color: #ffe66c;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.slot small {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  font-size: 12px;
+}
+
+#controls {
+  position: fixed;
+  bottom: 15px;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  text-shadow: 1px 1px 3px black;
+}
