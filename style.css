@@ -1,128 +1,293 @@
 
+/* =====================================
+   GALAXY BLOCKVERSE 3D - CSS V3
+   Minecraft-inspired game interface
+===================================== */
+
 * {
   box-sizing: border-box;
 }
 
-body {
+html, body {
+  width: 100%;
+  height: 100%;
   margin: 0;
+  padding: 0;
   overflow: hidden;
-  font-family: Arial, sans-serif;
-  background: #87ceeb;
-  color: white;
 }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #91cfff;
+  color: #ffffff;
+  user-select: none;
+}
+
+/* 3D GAME CANVAS */
 
 canvas {
   display: block;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
 }
+
+/* MAIN GAME MENU */
 
 #menu {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: linear-gradient(135deg, #071426, #18456b, #12604b);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  padding: 25px;
+
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      rgba(35, 116, 134, 0.85),
+      rgba(8, 21, 43, 0.97) 75%
+    );
+
+  backdrop-filter: blur(12px);
 }
 
 #menu h1 {
-  font-size: 48px;
-  color: #70ffb0;
-  text-shadow: 0 0 20px #20e98c;
+  font-size: clamp(30px, 5vw, 62px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #80ff9b;
+  margin-bottom: 5px;
+
+  text-shadow:
+    0 3px 0 #206c42,
+    0 6px 0 #12472c,
+    0 0 30px rgba(65, 255, 137, 0.5);
 }
 
 #menu h2 {
-  color: #b8dcff;
+  font-size: clamp(16px, 2vw, 25px);
+  letter-spacing: 4px;
+  color: #d9f1ff;
+  margin: 10px 0 25px;
 }
 
+#menu p {
+  color: #c6e5f2;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+/* PLAY BUTTON */
+
 #playBtn {
-  margin: 25px;
-  padding: 18px 55px;
-  border: none;
-  border-radius: 12px;
-  background: #10a668;
-  color: white;
-  font-size: 23px;
-  font-weight: bold;
+  padding: 18px 65px;
+  margin: 20px;
+  background: linear-gradient(
+    180deg,
+    #5edd69,
+    #248a37
+  );
+  color: #ffffff;
+  border: 3px solid #a7ffa8;
+  border-bottom: 6px solid #12591d;
+  border-radius: 5px;
+
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 2px;
+
   cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s, filter 0.15s;
 }
 
 #playBtn:hover {
-  background: #16d388;
-  transform: scale(1.05);
+  transform: translateY(-3px);
+  filter: brightness(1.15);
+}
+
+#playBtn:active {
+  transform: translateY(2px);
+}
+
+/* GAME HUD */
+
+#gameUI {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
 }
 
 #gameUI[hidden] {
-  display: none;
+  display: none !important;
 }
 
-#gameUI {
-  pointer-events: none;
-}
+/* TOP INFORMATION BAR */
 
 #topbar {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  padding: 15px;
-  background: rgba(0, 0, 0, 0.4);
+
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 15px;
+
+  padding: 12px 20px;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.65),
+    rgba(0, 0, 0, 0.15)
+  );
+
+  color: #ffffff;
+  font-size: 14px;
   font-weight: bold;
+  text-shadow: 1px 2px 3px #000000;
 }
+
+#coordinates {
+  color: #aaffb1;
+  font-family: monospace;
+  font-size: 15px;
+}
+
+/* CENTER CROSSHAIR */
 
 #crosshair {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 32px;
+
+  font-family: monospace;
+  font-size: 28px;
   font-weight: bold;
-  text-shadow: 0 0 4px black;
+  line-height: 1;
+
+  color: #ffffff;
+
+  text-shadow:
+    -1px -1px 2px #000,
+    1px -1px 2px #000,
+    -1px 1px 2px #000,
+    1px 1px 2px #000;
 }
+
+/* MINECRAFT-STYLE HOTBAR */
 
 #hotbar {
   position: fixed;
-  bottom: 65px;
   left: 50%;
+  bottom: 65px;
   transform: translateX(-50%);
+
   display: flex;
-  gap: 7px;
+  gap: 5px;
+  padding: 7px;
+
+  background: rgba(10, 12, 15, 0.65);
+  border: 3px solid rgba(0, 0, 0, 0.65);
+  border-radius: 5px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+
+  pointer-events: auto;
 }
 
 .slot {
-  width: 60px;
-  height: 60px;
-  background: rgba(20, 20, 20, 0.75);
-  border: 3px solid #666;
-  border-radius: 8px;
+  width: 62px;
+  height: 62px;
+
   display: flex;
-  justify-content: center;
   align-items: center;
-  font-size: 30px;
+  justify-content: center;
   position: relative;
+
+  background: rgba(70, 70, 70, 0.75);
+  border: 3px solid #353535;
+  border-radius: 3px;
+
+  font-size: 30px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.slot:hover {
+  background: rgba(120, 120, 120, 0.85);
 }
 
 .slot.selected {
-  border-color: #ffe66c;
-  background: rgba(255, 255, 255, 0.3);
+  border: 3px solid #ffffff;
+  outline: 2px solid #ffd84d;
+  background: rgba(180, 180, 180, 0.7);
+  box-shadow: 0 0 12px rgba(255, 225, 92, 0.6);
 }
 
 .slot small {
   position: absolute;
-  right: 4px;
-  bottom: 3px;
+  bottom: 2px;
+  right: 5px;
   font-size: 12px;
+  color: #ffffff;
+  text-shadow: 1px 1px 2px #000;
 }
+
+/* CONTROL INSTRUCTIONS */
 
 #controls {
   position: fixed;
-  bottom: 15px;
+  bottom: 12px;
+  left: 0;
   width: 100%;
+  padding: 5px 12px;
+
+  color: #ffffff;
   text-align: center;
   font-size: 13px;
-  text-shadow: 1px 1px 3px black;
+  font-weight: bold;
+  text-shadow: 1px 2px 4px #000000;
+}
+
+/* MOBILE / SMALL SCREENS */
+
+@media (max-width: 650px) {
+  #topbar {
+    font-size: 11px;
+    padding: 9px;
+  }
+
+  #coordinates {
+    font-size: 11px;
+  }
+
+  #hotbar {
+    bottom: 65px;
+    gap: 3px;
+    padding: 4px;
+  }
+
+  .slot {
+    width: 43px;
+    height: 43px;
+    font-size: 22px;
+  }
+
+  #controls {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  #playBtn {
+    font-size: 19px;
+    padding: 15px 35px;
+  }
 }
