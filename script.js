@@ -1,15 +1,15 @@
 
 import * as THREE from "https://esm.sh/three@0.180.0";
 
-// GALAXY BLOCKVERSE V2
-// Textured voxel world, water, clouds, trees and movement
+// GALAXY BLOCKVERSE V3
+// Improved 3D graphics, movement, collision and mining
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x86c9ff);
-scene.fog = new THREE.Fog(0x86c9ff, 38, 100);
+scene.background = new THREE.Color(0x91cfff);
+scene.fog = new THREE.Fog(0x91cfff, 45, 105);
 
 const camera = new THREE.PerspectiveCamera(
-  75, innerWidth / innerHeight, 0.1, 180
+  75, innerWidth / innerHeight, 0.05, 170
 );
 camera.rotation.order = "YXZ";
 
@@ -23,16 +23,18 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.25;
 document.body.appendChild(renderer.domElement);
 
-// SUNLIGHT
-scene.add(new THREE.HemisphereLight(0xc8e7ff, 0x6a825a, 2.3));
+// LIGHTING
+scene.add(new THREE.HemisphereLight(
+  0xc5e5ff, 0x788657, 2.1
+));
 
-const sun = new THREE.DirectionalLight(0xfff1ca, 2.4);
-sun.position.set(35, 65, 20);
+const sun = new THREE.DirectionalLight(0xffe9bb, 2.8);
+sun.position.set(22, 45, 18);
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -35;
 sun.shadow.camera.right = 35;
 sun.shadow.camera.top = 35;
@@ -40,243 +42,287 @@ sun.shadow.camera.bottom = -35;
 sun.shadow.normalBias = 0.035;
 scene.add(sun);
 
-// PIXEL ART TEXTURE GENERATOR
-function makeTexture(base, variation, seed) {
+// PIXEL TEXTURES
+function texture(base, seed, kind = "normal") {
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 16;
+  canvas.width = canvas.height = 32;
   const ctx = canvas.getContext("2d");
 
-  let s = seed;
+  let n = seed;
   function random() {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
+    n = (n * 1664525 + 1013904223) >>> 0;
+    return n / 4294967296;
   }
 
-  const c = new THREE.Color(base);
+  const color = new THREE.Color(base);
 
-  for (let y = 0; y < 16; y++) {
-    for (let x = 0; x < 16; x++) {
-      const shade = (random() - 0.5) * variation;
-      const color = c.clone();
-      color.r = THREE.MathUtils.clamp(color.r + shade, 0, 1);
-      color.g = THREE.MathUtils.clamp(color.g + shade, 0, 1);
-      color.b = THREE.MathUtils.clamp(color.b + shade, 0, 1);
+  for (let y = 0; y < 32; y++) {
+    for (let x = 0; x < 32; x++) {
+      let shade = (random() - 0.5) * 0.24;
 
-      ctx.fillStyle = "#" + color.getHexString();
+      if (kind === "bark" && x % 5 === 0) {
+        shade -= 0.13;
+      }
+
+      if (kind === "grassSide") {
+        if (y < 5 + Math.floor(random() * 3)) {
+          const grass = new THREE.Color(0x5aaa3c);
+          const c = grass.clone().multiplyScalar(
+            0.8 + random() * 0.35
+          );
+          ctx.fillStyle = "#" + c.getHexString();
+          ctx.fillRect(x, y, 1, 1);
+          continue;
+        }
+      }
+
+      if (kind === "stone" && random() < 0.09) {
+        shade -= 0.2;
+      }
+
+      const c = color.clone();
+      c.r = THREE.MathUtils.clamp(c.r + shade, 0, 1);
+      c.g = THREE.MathUtils.clamp(c.g + shade, 0, 1);
+      c.b = THREE.MathUtils.clamp(c.b + shade, 0, 1);
+
+      ctx.fillStyle = "#" + c.getHexString();
       ctx.fillRect(x, y, 1, 1);
     }
   }
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.magFilter = THREE.NearestFilter;
-  tex.minFilter = THREE.NearestFilter;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  const t = new THREE.CanvasTexture(canvas);
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.NearestFilter;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
 
-function material(color, variation, seed) {
+function mat(color, seed, kind) {
   return new THREE.MeshLambertMaterial({
-    map: makeTexture(color, variation, seed)
+    map: texture(color, seed, kind)
   });
 }
 
-const dirt = material(0x835333, 0.16, 11);
-const grass = material(0x4caa38, 0.12, 21);
-const stone = material(0x81858b, 0.17, 31);
-const bark = material(0x79502d, 0.15, 41);
-const leaves = material(0x277e30, 0.18, 51);
-const sand = material(0xe4ca83, 0.10, 61);
+const grassTop = mat(0x54ae36, 11);
+const grassSide = mat(0x886040, 12, "grassSide");
+const dirt = mat(0x805436, 13);
+const stone = mat(0x858991, 14, "stone");
+const bark = mat(0x886039, 15, "bark");
+const woodTop = mat(0xb58c58, 16);
+const leaves = mat(0x3b963d, 17);
+const sand = mat(0xdec88b, 18);
 
-// Grass top and dirt sides
-const grassSide = material(0x668348, 0.18, 71);
-const woodTop = material(0xa17b4b, 0.15, 81);
-
-const blockTypes = {
-  1: {name: "Grass", mats: [
-    grassSide, grassSide, grass, dirt, grassSide, grassSide
-  ]},
-  2: {name: "Dirt", mats: dirt},
-  3: {name: "Stone", mats: stone},
-  4: {name: "Wood", mats: [
-    bark, bark, woodTop, woodTop, bark, bark
-  ]},
-  5: {name: "Leaves", mats: leaves},
-  6: {name: "Sand", mats: sand}
+const types = {
+  1: [grassSide, grassSide, grassTop, dirt,
+      grassSide, grassSide],
+  2: dirt,
+  3: stone,
+  4: [bark, bark, woodTop, woodTop, bark, bark],
+  5: leaves,
+  6: sand
 };
 
+const world = new Map();
+const visible = new Map();
 const cube = new THREE.BoxGeometry(1, 1, 1);
-const blocks = new Map();
-const meshes = [];
+const SIZE = 28;
 
-function blockKey(x, y, z) {
-  return `${x},${y},${z}`;
+const k = (x, y, z) => `${x},${y},${z}`;
+
+function setData(x, y, z, type) {
+  world.set(k(x, y, z), type);
 }
 
-function addBlock(x, y, z, type = 1) {
-  if (!blockTypes[type]) return;
-  const k = blockKey(x, y, z);
-  if (blocks.has(k)) return;
+function isBlock(x, y, z) {
+  return world.has(k(x, y, z));
+}
 
-  const mesh = new THREE.Mesh(cube, blockTypes[type].mats);
+// WORLD GENERATION
+function heightAt(x, z) {
+  const dist = Math.hypot(x + 13, z + 12);
+
+  if (dist < 7) return -2;
+
+  let h =
+    Math.sin(x * 0.12) * 3 +
+    Math.cos(z * 0.11) * 2.7 +
+    Math.sin((x + z) * 0.065) * 3.2 +
+    Math.sin(x * 0.3) * Math.cos(z * 0.2);
+
+  // Clear a safe starting area.
+  const spawnDist = Math.hypot(x, z - 6);
+  if (spawnDist < 6) h *= spawnDist / 6;
+
+  return Math.floor(h);
+}
+
+for (let x = -SIZE; x <= SIZE; x++) {
+  for (let z = -SIZE; z <= SIZE; z++) {
+    const h = heightAt(x, z);
+
+    setData(x, h, z, h < 0 ? 6 : h >= 6 ? 3 : 1);
+
+    for (let y = h - 1; y >= -9; y--) {
+      setData(x, y, z, y > h - 3 ? 2 : 3);
+    }
+  }
+}
+
+// DETERMINISTIC RANDOM
+function rand(n) {
+  const v = Math.sin(n * 127.1 + 78.23) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+// TREES
+function addTree(x, z) {
+  const h = heightAt(x, z);
+  if (h < 0 || h > 5) return;
+
+  const trunk = 4 + Math.floor(rand(x * 8 + z) * 3);
+
+  for (let y = 1; y <= trunk; y++) {
+    setData(x, h + y, z, 4);
+  }
+
+  for (let dy = -1; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
+        if (Math.abs(dx) + Math.abs(dz) > 3) continue;
+        if (dx === 0 && dz === 0 && dy <= 0) continue;
+
+        setData(
+          x + dx,
+          h + trunk + dy,
+          z + dz,
+          5
+        );
+      }
+    }
+  }
+}
+
+for (let x = -24; x <= 24; x += 5) {
+  for (let z = -24; z <= 24; z += 5) {
+    if (rand(x * 113 + z * 79) > 0.42) {
+      const tx = x + Math.floor(rand(x + z * 7) * 3);
+      const tz = z + Math.floor(rand(z + x * 11) * 3);
+
+      if (
+        Math.hypot(tx, tz - 6) > 9 &&
+        Math.hypot(tx + 13, tz + 12) > 10
+      ) {
+        addTree(tx, tz);
+      }
+    }
+  }
+}
+
+// RENDER ONLY EXPOSED BLOCKS
+const neighbors = [
+  [1, 0, 0], [-1, 0, 0],
+  [0, 1, 0], [0, -1, 0],
+  [0, 0, 1], [0, 0, -1]
+];
+
+function refreshBlock(x, y, z) {
+  const id = k(x, y, z);
+  const old = visible.get(id);
+
+  if (old) {
+    scene.remove(old);
+    visible.delete(id);
+  }
+
+  const type = world.get(id);
+  if (!type) return;
+
+  const exposed = neighbors.some(([dx, dy, dz]) =>
+    !isBlock(x + dx, y + dy, z + dz)
+  );
+
+  if (!exposed) return;
+
+  const mesh = new THREE.Mesh(cube, types[type]);
   mesh.position.set(x, y, z);
-  mesh.userData.type = type;
+  mesh.userData.block = true;
   mesh.receiveShadow = true;
   mesh.castShadow = type === 4 || type === 5;
 
   scene.add(mesh);
-  blocks.set(k, mesh);
-  meshes.push(mesh);
+  visible.set(id, mesh);
 }
 
-function removeBlock(mesh) {
-  if (!mesh) return;
-  const p = mesh.position;
-  blocks.delete(blockKey(p.x, p.y, p.z));
-  scene.remove(mesh);
-  const i = meshes.indexOf(mesh);
-  if (i >= 0) meshes.splice(i, 1);
+for (const id of world.keys()) {
+  const [x, y, z] = id.split(",").map(Number);
+  refreshBlock(x, y, z);
 }
 
-// WORLD GENERATION
-const SIZE = 29;
-const heights = new Map();
-
-function terrainHeight(x, z) {
-  const hills =
-    Math.sin(x * 0.105) * 2.8 +
-    Math.cos(z * 0.12) * 2.5 +
-    Math.sin((x + z) * 0.075) * 2.5 +
-    Math.sin(x * 0.32) * Math.cos(z * 0.28) * 0.7;
-
-  const riverCenter = Math.sin(z * 0.075) * 8 + 13;
-  const riverDistance = Math.abs(x - riverCenter);
-
-  if (riverDistance < 4) {
-    return Math.min(
-      Math.floor(hills + 1),
-      riverDistance < 2.5 ? -2 : -1
-    );
+function modifyBlock(x, y, z, type) {
+  if (type) {
+    setData(x, y, z, type);
+  } else {
+    world.delete(k(x, y, z));
   }
 
-  return Math.floor(hills + 1);
-}
-
-// Terrain columns
-for (let x = -SIZE; x <= SIZE; x++) {
-  for (let z = -SIZE; z <= SIZE; z++) {
-    const h = terrainHeight(x, z);
-    heights.set(blockKey(x, 0, z), h);
-
-    const topType = h <= -1 ? 6 : h >= 6 ? 3 : 1;
-    addBlock(x, h, z, topType);
-
-    // Enough depth for mining and exposed cliffs
-    for (let y = h - 1; y >= Math.max(-5, h - 4); y--) {
-      addBlock(x, y, z, y >= h - 2 ? 2 : 3);
-    }
+  refreshBlock(x, y, z);
+  for (const [dx, dy, dz] of neighbors) {
+    refreshBlock(x + dx, y + dy, z + dz);
   }
 }
 
-// FOREST
-function createTree(x, z) {
-  const y = terrainHeight(x, z);
-  if (y < 0 || y > 5) return;
-
-  const trunkHeight = 3 + Math.floor(
-    (Math.sin(x * 13.2 + z * 7.1) + 1) * 1.2
-  );
-
-  for (let i = 1; i <= trunkHeight; i++) {
-    addBlock(x, y + i, z, 4);
-  }
-
-  for (let dy = -1; dy <= 2; dy++) {
-    const radius = dy === 2 ? 1 : 2;
-
-    for (let dx = -radius; dx <= radius; dx++) {
-      for (let dz = -radius; dz <= radius; dz++) {
-        if (Math.abs(dx) + Math.abs(dz) > radius * 1.7) {
-          continue;
-        }
-        if (dx === 0 && dz === 0 && dy <= 0) continue;
-
-        addBlock(x + dx, y + trunkHeight + dy, z + dz, 5);
-      }
-    }
-  }
-}
-
-function rand01(n) {
-  const v = Math.sin(n * 127.1 + 78.233) * 43758.5453;
-  return v - Math.floor(v);
-}
-
-for (let x = -SIZE + 3; x < SIZE - 3; x += 5) {
-  for (let z = -SIZE + 3; z < SIZE - 3; z += 5) {
-    if (rand01(x * 113 + z * 79) > 0.40) {
-      const tx = x + Math.floor(rand01(x + z * 19) * 3);
-      const tz = z + Math.floor(rand01(z + x * 23) * 3);
-
-      if (Math.hypot(tx, tz - 6) > 9) {
-        createTree(tx, tz);
-      }
-    }
-  }
-}
-
-// WATER
-const waterMat = new THREE.MeshPhongMaterial({
-  color: 0x248bc8,
-  transparent: true,
-  opacity: 0.66,
-  shininess: 85,
-  depthWrite: false,
-  side: THREE.DoubleSide
-});
-
+// LAKE
 const water = new THREE.Mesh(
-  new THREE.PlaneGeometry(SIZE * 2 + 1, SIZE * 2 + 1),
-  waterMat
+  new THREE.CircleGeometry(7, 64),
+  new THREE.MeshPhongMaterial({
+    color: 0x2a9bd0,
+    transparent: true,
+    opacity: 0.75,
+    depthWrite: false,
+    shininess: 90,
+    side: THREE.DoubleSide
+  })
 );
 water.rotation.x = -Math.PI / 2;
-water.position.y = -0.27;
-water.renderOrder = 1;
+water.position.set(-13, -0.35, -12);
 scene.add(water);
 
 // CLOUDS
-const cloudMaterial = new THREE.MeshLambertMaterial({
+const clouds = [];
+const cloudMat = new THREE.MeshBasicMaterial({
   color: 0xffffff,
   transparent: true,
-  opacity: 0.88
+  opacity: 0.85
 });
-const clouds = [];
 
-for (let i = 0; i < 15; i++) {
+for (let i = 0; i < 12; i++) {
   const group = new THREE.Group();
-  const x = (rand01(i * 7) - 0.5) * 100;
-  const z = (rand01(i * 11) - 0.5) * 100;
 
   for (let p = 0; p < 4; p++) {
     const part = new THREE.Mesh(
-      new THREE.BoxGeometry(5, 1.3, 3),
-      cloudMaterial
+      new THREE.BoxGeometry(5, 1.4, 3),
+      cloudMat
     );
     part.position.x = p * 3;
-    part.position.y = Math.sin(p) * 0.4;
     group.add(part);
   }
 
-  group.position.set(x, 20 + rand01(i * 31) * 7, z);
+  group.position.set(
+    rand(i + 10) * 100 - 50,
+    23 + rand(i + 31) * 9,
+    rand(i + 50) * 100 - 50
+  );
+
   scene.add(group);
   clouds.push(group);
 }
 
-// PLAYER AND CAMERA
+// PLAYER PHYSICS
 const player = {
-  height: 1.7,
   radius: 0.28,
-  speed: 5,
-  sprint: 8,
+  eyeHeight: 1.62,
+  walkSpeed: 4.6,
+  sprintSpeed: 7.5,
   velocityY: 0,
   grounded: false,
   flying: false
@@ -284,7 +330,7 @@ const player = {
 
 camera.position.set(
   0,
-  terrainHeight(0, 6) + 0.5 + player.height,
+  heightAt(0, 6) + 0.5 + player.eyeHeight,
   6
 );
 
@@ -296,8 +342,9 @@ let selectedBlock = 1;
 
 const menu = document.getElementById("menu");
 const ui = document.getElementById("gameUI");
+const playBtn = document.getElementById("playBtn");
 
-document.getElementById("playBtn").onclick = () => {
+playBtn.onclick = () => {
   renderer.domElement.requestPointerLock();
 };
 
@@ -307,7 +354,7 @@ document.addEventListener("pointerlockchange", () => {
   ui.hidden = !playing;
 
   if (!playing) {
-    for (const key in keys) keys[key] = false;
+    Object.keys(keys).forEach(key => keys[key] = false);
   }
 });
 
@@ -322,19 +369,7 @@ document.addEventListener("mousemove", e => {
   camera.rotation.x = pitch;
 });
 
-function chooseBlock(n) {
-  if (!blockTypes[n]) return;
-
-  selectedBlock = n;
-
-  document.querySelectorAll(".slot").forEach(slot => {
-    slot.classList.toggle(
-      "selected",
-      Number(slot.dataset.block) === n
-    );
-  });
-}
-
+// KEYBOARD
 document.addEventListener("keydown", e => {
   keys[e.code] = true;
 
@@ -345,10 +380,22 @@ document.addEventListener("keydown", e => {
   if (playing && e.code === "KeyF" && !e.repeat) {
     player.flying = !player.flying;
     player.velocityY = 0;
+    player.grounded = false;
   }
 
   if (playing && e.code.startsWith("Digit")) {
-    chooseBlock(Number(e.code.slice(5)));
+    const n = Number(e.code.slice(5));
+
+    if (types[n]) {
+      selectedBlock = n;
+
+      document.querySelectorAll(".slot").forEach(slot => {
+        slot.classList.toggle(
+          "selected",
+          Number(slot.dataset.block) === n
+        );
+      });
+    }
   }
 });
 
@@ -356,54 +403,19 @@ document.addEventListener("keyup", e => {
   keys[e.code] = false;
 });
 
-// MINING AND BUILDING
-const raycaster = new THREE.Raycaster();
-raycaster.far = 6;
-const screenCenter = new THREE.Vector2(0, 0);
-
-document.addEventListener("contextmenu", e => e.preventDefault());
-
-document.addEventListener("mousedown", e => {
-  if (!playing) return;
-
-  raycaster.setFromCamera(screenCenter, camera);
-  const hits = raycaster.intersectObjects(meshes, false);
-  if (!hits.length) return;
-
-  const hit = hits[0];
-
-  if (e.button === 0) {
-    removeBlock(hit.object);
-  }
-
-  if (e.button === 2) {
-    const pos = hit.object.position.clone()
-      .add(hit.face.normal).round();
-
-    if (
-      Math.abs(pos.x - camera.position.x) < 0.8 &&
-      Math.abs(pos.z - camera.position.z) < 0.8 &&
-      Math.abs(pos.y - (camera.position.y - 1)) < 1.5
-    ) return;
-
-    addBlock(pos.x, pos.y, pos.z, selectedBlock);
-  }
-});
-
-// SIMPLE VOXEL COLLISION
-function isSolid(x, y, z) {
-  return blocks.has(blockKey(
-    Math.round(x),
-    Math.round(y),
-    Math.round(z)
-  ));
-}
-
+// SOLID BLOCK COLLISION
 function collides(pos) {
-  for (const dx of [-player.radius, player.radius]) {
-    for (const dz of [-player.radius, player.radius]) {
-      for (const dy of [-player.height + 0.15, -0.85, -0.15]) {
-        if (isSolid(pos.x + dx, pos.y + dy, pos.z + dz)) {
+  const r = player.radius;
+  const h = player.eyeHeight;
+
+  for (const dx of [-r, r]) {
+    for (const dz of [-r, r]) {
+      for (const dy of [-h + 0.12, -0.85, -0.12]) {
+        if (isBlock(
+          Math.round(pos.x + dx),
+          Math.round(pos.y + dy),
+          Math.round(pos.z + dz)
+        )) {
           return true;
         }
       }
@@ -412,36 +424,87 @@ function collides(pos) {
   return false;
 }
 
-function moveAxis(axis, amount) {
+function moveAxis(axis, distance) {
   const next = camera.position.clone();
-  next[axis] += amount;
+  next[axis] += distance;
 
   if (!collides(next)) {
     camera.position[axis] = next[axis];
     return true;
   }
+
   return false;
 }
 
+// MINING AND BUILDING
+const raycaster = new THREE.Raycaster();
+raycaster.far = 6;
+const center = new THREE.Vector2(0, 0);
+
+document.addEventListener("contextmenu", e => {
+  e.preventDefault();
+});
+
+document.addEventListener("mousedown", e => {
+  if (!playing) return;
+  if (e.button !== 0 && e.button !== 2) return;
+
+  raycaster.setFromCamera(center, camera);
+
+  const hits = raycaster.intersectObjects(
+    Array.from(visible.values()), false
+  );
+
+  if (!hits.length) return;
+
+  const hit = hits[0];
+  const p = hit.object.position;
+
+  if (e.button === 0) {
+    modifyBlock(p.x, p.y, p.z, 0);
+  }
+
+  if (e.button === 2) {
+    const target = p.clone().add(hit.face.normal).round();
+
+    // Prevent placing a block inside your character.
+    const meshPos = camera.position;
+    const overlaps =
+      Math.abs(target.x - meshPos.x) < 0.8 &&
+      Math.abs(target.z - meshPos.z) < 0.8 &&
+      target.y + 0.5 > meshPos.y - player.eyeHeight &&
+      target.y - 0.5 < meshPos.y + 0.2;
+
+    if (!overlaps) {
+      modifyBlock(
+        target.x, target.y, target.z, selectedBlock
+      );
+    }
+  }
+});
+
 // GAME LOOP
 const clock = new THREE.Clock();
-const direction = new THREE.Vector3();
+const move = new THREE.Vector3();
+let walkAnimation = 0;
 
 function animate() {
   requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.035);
-  const time = clock.elapsedTime;
 
-  // Clouds and water
+  const dt = Math.min(clock.getDelta(), 0.032);
+  const t = clock.elapsedTime;
+
   for (const cloud of clouds) {
-    cloud.position.x += dt * 0.55;
+    cloud.position.x += dt * 0.45;
     if (cloud.position.x > 65) cloud.position.x = -65;
   }
-  water.position.y = -0.27 + Math.sin(time * 1.3) * 0.025;
+
+  water.position.y = -0.35 + Math.sin(t * 1.4) * 0.035;
 
   if (playing) {
-    const speed = keys.ShiftLeft ? player.sprint : player.speed;
-    direction.set(0, 0, 0);
+    const speed = keys.ShiftLeft
+      ? player.sprintSpeed
+      : player.walkSpeed;
 
     const forward = new THREE.Vector3(
       -Math.sin(yaw), 0, -Math.cos(yaw)
@@ -450,44 +513,54 @@ function animate() {
       Math.cos(yaw), 0, -Math.sin(yaw)
     );
 
-    if (keys.KeyW) direction.add(forward);
-    if (keys.KeyS) direction.sub(forward);
-    if (keys.KeyD) direction.add(right);
-    if (keys.KeyA) direction.sub(right);
+    move.set(0, 0, 0);
 
-    if (direction.lengthSq() > 0) {
-      direction.normalize().multiplyScalar(speed * dt);
-      moveAxis("x", direction.x);
-      moveAxis("z", direction.z);
+    if (keys.KeyW) move.add(forward);
+    if (keys.KeyS) move.sub(forward);
+    if (keys.KeyD) move.add(right);
+    if (keys.KeyA) move.sub(right);
+
+    const moving = move.lengthSq() > 0;
+
+    if (moving) {
+      move.normalize().multiplyScalar(speed * dt);
+      moveAxis("x", move.x);
+      moveAxis("z", move.z);
     }
 
     if (player.flying) {
-      let vertical = 0;
-      if (keys.Space) vertical += speed * dt;
-      if (keys.ControlLeft) vertical -= speed * dt;
-      moveAxis("y", vertical);
+      if (keys.Space) moveAxis("y", speed * dt);
+      if (keys.ControlLeft) moveAxis("y", -speed * dt);
       player.velocityY = 0;
-      player.grounded = false;
     } else {
       if (keys.Space && player.grounded) {
         player.velocityY = 7.5;
         player.grounded = false;
       }
 
-      player.velocityY -= 20 * dt;
-      const movement = player.velocityY * dt;
+      player.velocityY -= 21 * dt;
+      player.velocityY = Math.max(player.velocityY, -16);
 
-      const moved = moveAxis("y", movement);
+      const moved = moveAxis(
+        "y", player.velocityY * dt
+      );
 
       if (!moved) {
         player.grounded = player.velocityY <= 0;
         player.velocityY = 0;
       } else {
-        // Probe for ground below the player's feet.
-        const test = camera.position.clone();
-        test.y -= 0.07;
-        player.grounded = collides(test);
+        const probe = camera.position.clone();
+        probe.y -= 0.08;
+        player.grounded = collides(probe);
       }
+    }
+
+    // A subtle walking motion.
+    if (moving && player.grounded && !player.flying) {
+      walkAnimation += dt * 11;
+      camera.rotation.z = Math.sin(walkAnimation) * 0.006;
+    } else {
+      camera.rotation.z *= 0.85;
     }
 
     camera.position.x = THREE.MathUtils.clamp(
@@ -497,10 +570,10 @@ function animate() {
       camera.position.z, -SIZE + 1, SIZE - 1
     );
 
-    if (camera.position.y < -12) {
+    if (camera.position.y < -15) {
       camera.position.set(
         0,
-        terrainHeight(0, 6) + 4,
+        heightAt(0, 6) + 0.5 + player.eyeHeight,
         6
       );
       player.velocityY = 0;
@@ -517,7 +590,6 @@ function animate() {
 
 animate();
 
-// RESIZE
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
