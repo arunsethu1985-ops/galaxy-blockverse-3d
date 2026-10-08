@@ -1,265 +1,88 @@
 
-* { box-sizing: border-box; }
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{background:#91caff;color:white;font-family:Arial,sans-serif;user-select:none}
+[hidden]{display:none!important}
+canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
+button{cursor:pointer;color:white;background:#278846;border:2px solid #a5efaa;border-radius:5px;padding:11px 18px;font-weight:bold}
+button:hover{filter:brightness(1.15)}
+button:disabled{opacity:.45;cursor:default}
 
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+#menu{
+ position:fixed;inset:0;z-index:100;
+ display:flex;flex-direction:column;align-items:center;
+ justify-content:center;text-align:center;padding:20px;
+ background:linear-gradient(140deg,#07172d,#164d69,#195637)
 }
-
-body {
-  font-family: Arial, sans-serif;
-  background: #8bc8ff;
-  color: white;
-  user-select: none;
+#menu h1{
+ color:#8aff9d;font-size:clamp(30px,5vw,64px);
+ text-shadow:0 4px #145329,0 0 20px #3d9;
+ margin:0
 }
+#menu h2{letter-spacing:3px;color:#d4f1ff}
+#menu #play{font-size:24px;padding:17px 55px;margin:20px}
+#menu #reset{background:#833939;font-size:12px}
+.help{font-size:13px;line-height:1.9;color:#d4e4ed}
 
-canvas {
-  display: block;
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none}
+header{
+ position:fixed;top:0;left:0;width:100%;
+ display:flex;justify-content:space-between;gap:12px;
+ padding:12px 16px;background:#0009;font-size:14px
 }
-
-[hidden] { display: none !important; }
-
-/* MENU */
-#menu {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: linear-gradient(
-    140deg, #06182b, #155577, #1b633e
-  );
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 20px;
+#coords{font-family:monospace;color:#b9ffd2}
+aside{
+ position:fixed;top:60px;left:14px;width:180px;
+ padding:12px;background:#0009;border:2px solid #ffffff30;
+ border-radius:6px;font-size:13px;font-weight:bold
 }
-
-#menu h1 {
-  font-size: clamp(30px, 5vw, 62px);
-  color: #85ff9a;
-  text-shadow: 0 4px #17542d, 0 0 25px #38e27f;
-  margin-bottom: 5px;
+.meter{height:12px;background:#252525;border:1px solid #000;margin:5px 0 12px}
+.meter div{height:100%;width:100%}
+#hpFill{background:#ed4545}
+#foodFill{background:#f0b33e}
+#xpFill{background:#5ce377;width:0}
+#weapon,#mode{margin-top:9px;color:#b5efff}
+#crosshair{
+ position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+ font:bold 30px monospace;text-shadow:1px 1px 3px black
 }
-
-#menu h2 {
-  color: #c4e9ff;
-  letter-spacing: 3px;
+#notice{
+ position:fixed;top:25%;width:100%;text-align:center;
+ font-weight:bold;color:#ffeb86;text-shadow:1px 2px 4px #000
 }
-
-#menu button, .panel button {
-  color: white;
-  border: 2px solid #a0ffb5;
-  background: #218844;
-  padding: 12px 24px;
-  border-radius: 5px;
-  font-size: 17px;
-  font-weight: bold;
-  cursor: pointer;
-  margin: 8px;
+footer{
+ position:fixed;bottom:16px;left:50%;
+ transform:translateX(-50%);text-align:center;white-space:nowrap
 }
-
-#menu button:hover, .panel button:hover {
-  background: #37aa58;
+#hotbar{display:flex;gap:4px;padding:6px;background:#000b;border:3px solid #444}
+.slot{
+ width:49px;height:49px;display:flex;align-items:center;
+ justify-content:center;background:#555;border:3px solid #444;
+ position:relative;font-size:24px
 }
-
-#playBtn {
-  font-size: 24px !important;
-  padding: 17px 55px !important;
+.slot.active{border-color:#ffe46d;background:#999}
+.slot small{position:absolute;right:3px;bottom:1px;font-size:10px}
+#selected{font-weight:bold;margin:6px;text-shadow:1px 1px 3px black}
+footer small{text-shadow:1px 1px 3px #000}
+.panel{
+ position:fixed;z-index:200;top:50%;left:50%;
+ transform:translate(-50%,-50%);
+ width:min(550px,95vw);max-height:82vh;overflow-y:auto;
+ text-align:center;padding:18px;background:#25333d;
+ border:4px solid #73838c;border-radius:8px;
+ box-shadow:0 12px 45px #0009
 }
-
-#resetBtn {
-  background: #653b3b !important;
-  font-size: 13px !important;
+.panel h2{color:#a9ffb9}
+.item,.recipe{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:8px;padding:9px;margin:5px 0;background:#3b4a53;
+ border-radius:5px;text-align:left
 }
-
-.instructions {
-  color: #c9e5ef;
-  font-size: 13px;
-  line-height: 2;
-}
-
-/* GAME HUD */
-#gameUI {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  pointer-events: none;
-}
-
-#topbar {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  background: rgba(0,0,0,.55);
-  padding: 12px;
-  font-size: 14px;
-}
-
-#coordinates { color: #b4ffc8; }
-
-#survival {
-  position: fixed;
-  top: 65px;
-  left: 15px;
-  width: 190px;
-  font-weight: bold;
-  font-size: 13px;
-  text-shadow: 1px 2px 3px #000;
-}
-
-.meter {
-  height: 13px;
-  background: #222;
-  border: 2px solid #111;
-  margin: 4px 0 10px;
-}
-
-#healthFill {
-  height: 100%;
-  width: 100%;
-  background: #ed4545;
-}
-
-#hungerFill {
-  height: 100%;
-  width: 100%;
-  background: #e6a635;
-}
-
-#crosshair {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  font: bold 30px monospace;
-  text-shadow: 1px 1px 3px black;
-}
-
-#message {
-  position: fixed;
-  top: 25%;
-  width: 100%;
-  text-align: center;
-  font-size: 18px;
-  color: #f9ed8a;
-  text-shadow: 1px 2px 4px black;
-}
-
-#bottomUI {
-  position: fixed;
-  bottom: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-}
-
-#hotbar {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px;
-  background: rgba(0,0,0,.65);
-  border: 3px solid #333;
-  border-radius: 5px;
-}
-
-.slot {
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #595959;
-  border: 3px solid #333;
-  font-size: 25px;
-  position: relative;
-}
-
-.slot.selected {
-  background: #999;
-  border-color: #ffe56c;
-}
-
-.slot small {
-  position: absolute;
-  right: 3px;
-  bottom: 2px;
-  font-size: 11px;
-}
-
-#selectedText {
-  margin-top: 7px;
-  font-weight: bold;
-  text-shadow: 1px 2px 3px black;
-}
-
-#controls {
-  font-size: 12px;
-  text-shadow: 1px 2px 3px black;
-  margin-top: 5px;
-}
-
-/* INVENTORY AND CRAFTING */
-.panel {
-  position: fixed;
-  z-index: 200;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  background: #242e35;
-  border: 4px solid #66737c;
-  border-radius: 8px;
-  padding: 22px;
-  width: min(480px, 94vw);
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 15px 60px #000a;
-  text-align: center;
-}
-
-.panel h2 {
-  color: #9affae;
-}
-
-.inventoryRow {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px;
-  background: #37434a;
-  margin: 5px;
-  border-radius: 4px;
-}
-
-.recipe {
-  background: #394650;
-  border-radius: 5px;
-  padding: 10px;
-  margin: 8px 0;
-}
-
-.recipe p {
-  font-size: 12px;
-  color: #cfd9df;
-}
-
-.recipe button {
-  font-size: 13px;
-  padding: 7px 15px;
-}
-
-@media (max-width: 600px) {
-  #topbar { font-size: 10px; }
-  #survival { top: 55px; width: 140px; }
-  .slot { width: 38px; height: 42px; font-size: 18px; }
-  #controls { font-size: 10px; }
+.recipe p{font-size:12px;color:#d4e0e4;margin:5px 0}
+.recipe button{padding:6px 12px;font-size:12px}
+@media(max-width:650px){
+ aside{width:132px;font-size:11px}
+ header{font-size:10px}
+ .slot{width:34px;height:40px;font-size:17px}
+ footer small{font-size:10px}
 }
