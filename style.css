@@ -1,29 +1,19 @@
 
-/* =====================================
-   GALAXY BLOCKVERSE 3D - CSS V3
-   Minecraft-inspired game interface
-===================================== */
-
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
+  margin: 0;
   width: 100%;
   height: 100%;
-  margin: 0;
-  padding: 0;
   overflow: hidden;
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: #91cfff;
-  color: #ffffff;
+  font-family: Arial, sans-serif;
+  background: #8bc8ff;
+  color: white;
   user-select: none;
 }
-
-/* 3D GAME CANVAS */
 
 canvas {
   display: block;
@@ -31,93 +21,71 @@ canvas {
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
 }
 
-/* MAIN GAME MENU */
+[hidden] { display: none !important; }
 
+/* MENU */
 #menu {
   position: fixed;
   inset: 0;
   z-index: 100;
+  background: linear-gradient(
+    140deg, #06182b, #155577, #1b633e
+  );
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 25px;
-
-  background:
-    radial-gradient(
-      circle at 50% 35%,
-      rgba(35, 116, 134, 0.85),
-      rgba(8, 21, 43, 0.97) 75%
-    );
-
-  backdrop-filter: blur(12px);
+  padding: 20px;
 }
 
 #menu h1 {
   font-size: clamp(30px, 5vw, 62px);
-  font-weight: 900;
-  letter-spacing: 3px;
-  color: #80ff9b;
+  color: #85ff9a;
+  text-shadow: 0 4px #17542d, 0 0 25px #38e27f;
   margin-bottom: 5px;
-
-  text-shadow:
-    0 3px 0 #206c42,
-    0 6px 0 #12472c,
-    0 0 30px rgba(65, 255, 137, 0.5);
 }
 
 #menu h2 {
-  font-size: clamp(16px, 2vw, 25px);
-  letter-spacing: 4px;
-  color: #d9f1ff;
-  margin: 10px 0 25px;
+  color: #c4e9ff;
+  letter-spacing: 3px;
 }
 
-#menu p {
-  color: #c6e5f2;
-  font-size: 16px;
-  letter-spacing: 1px;
+#menu button, .panel button {
+  color: white;
+  border: 2px solid #a0ffb5;
+  background: #218844;
+  padding: 12px 24px;
+  border-radius: 5px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 8px;
 }
 
-/* PLAY BUTTON */
+#menu button:hover, .panel button:hover {
+  background: #37aa58;
+}
 
 #playBtn {
-  padding: 18px 65px;
-  margin: 20px;
-  background: linear-gradient(
-    180deg,
-    #5edd69,
-    #248a37
-  );
-  color: #ffffff;
-  border: 3px solid #a7ffa8;
-  border-bottom: 6px solid #12591d;
-  border-radius: 5px;
-
-  font-size: 24px;
-  font-weight: 900;
-  letter-spacing: 2px;
-
-  cursor: pointer;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
-  transition: transform 0.15s, filter 0.15s;
+  font-size: 24px !important;
+  padding: 17px 55px !important;
 }
 
-#playBtn:hover {
-  transform: translateY(-3px);
-  filter: brightness(1.15);
+#resetBtn {
+  background: #653b3b !important;
+  font-size: 13px !important;
 }
 
-#playBtn:active {
-  transform: translateY(2px);
+.instructions {
+  color: #c9e5ef;
+  font-size: 13px;
+  line-height: 2;
 }
 
 /* GAME HUD */
-
 #gameUI {
   position: fixed;
   inset: 0;
@@ -125,169 +93,173 @@ canvas {
   pointer-events: none;
 }
 
-#gameUI[hidden] {
-  display: none !important;
-}
-
-/* TOP INFORMATION BAR */
-
 #topbar {
   position: fixed;
   top: 0;
-  left: 0;
   width: 100%;
-
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 15px;
-
-  padding: 12px 20px;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.65),
-    rgba(0, 0, 0, 0.15)
-  );
-
-  color: #ffffff;
+  gap: 12px;
+  background: rgba(0,0,0,.55);
+  padding: 12px;
   font-size: 14px;
+}
+
+#coordinates { color: #b4ffc8; }
+
+#survival {
+  position: fixed;
+  top: 65px;
+  left: 15px;
+  width: 190px;
   font-weight: bold;
-  text-shadow: 1px 2px 3px #000000;
+  font-size: 13px;
+  text-shadow: 1px 2px 3px #000;
 }
 
-#coordinates {
-  color: #aaffb1;
-  font-family: monospace;
-  font-size: 15px;
+.meter {
+  height: 13px;
+  background: #222;
+  border: 2px solid #111;
+  margin: 4px 0 10px;
 }
 
-/* CENTER CROSSHAIR */
+#healthFill {
+  height: 100%;
+  width: 100%;
+  background: #ed4545;
+}
+
+#hungerFill {
+  height: 100%;
+  width: 100%;
+  background: #e6a635;
+}
 
 #crosshair {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-
-  font-family: monospace;
-  font-size: 28px;
-  font-weight: bold;
-  line-height: 1;
-
-  color: #ffffff;
-
-  text-shadow:
-    -1px -1px 2px #000,
-    1px -1px 2px #000,
-    -1px 1px 2px #000,
-    1px 1px 2px #000;
+  transform: translate(-50%,-50%);
+  font: bold 30px monospace;
+  text-shadow: 1px 1px 3px black;
 }
 
-/* MINECRAFT-STYLE HOTBAR */
+#message {
+  position: fixed;
+  top: 25%;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  color: #f9ed8a;
+  text-shadow: 1px 2px 4px black;
+}
+
+#bottomUI {
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
 
 #hotbar {
-  position: fixed;
-  left: 50%;
-  bottom: 65px;
-  transform: translateX(-50%);
-
   display: flex;
-  gap: 5px;
-  padding: 7px;
-
-  background: rgba(10, 12, 15, 0.65);
-  border: 3px solid rgba(0, 0, 0, 0.65);
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(0,0,0,.65);
+  border: 3px solid #333;
   border-radius: 5px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
-
-  pointer-events: auto;
 }
 
 .slot {
-  width: 62px;
-  height: 62px;
-
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #595959;
+  border: 3px solid #333;
+  font-size: 25px;
   position: relative;
-
-  background: rgba(70, 70, 70, 0.75);
-  border: 3px solid #353535;
-  border-radius: 3px;
-
-  font-size: 30px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.slot:hover {
-  background: rgba(120, 120, 120, 0.85);
 }
 
 .slot.selected {
-  border: 3px solid #ffffff;
-  outline: 2px solid #ffd84d;
-  background: rgba(180, 180, 180, 0.7);
-  box-shadow: 0 0 12px rgba(255, 225, 92, 0.6);
+  background: #999;
+  border-color: #ffe56c;
 }
 
 .slot small {
   position: absolute;
+  right: 3px;
   bottom: 2px;
-  right: 5px;
-  font-size: 12px;
-  color: #ffffff;
-  text-shadow: 1px 1px 2px #000;
+  font-size: 11px;
 }
 
-/* CONTROL INSTRUCTIONS */
+#selectedText {
+  margin-top: 7px;
+  font-weight: bold;
+  text-shadow: 1px 2px 3px black;
+}
 
 #controls {
-  position: fixed;
-  bottom: 12px;
-  left: 0;
-  width: 100%;
-  padding: 5px 12px;
-
-  color: #ffffff;
-  text-align: center;
-  font-size: 13px;
-  font-weight: bold;
-  text-shadow: 1px 2px 4px #000000;
+  font-size: 12px;
+  text-shadow: 1px 2px 3px black;
+  margin-top: 5px;
 }
 
-/* MOBILE / SMALL SCREENS */
+/* INVENTORY AND CRAFTING */
+.panel {
+  position: fixed;
+  z-index: 200;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  background: #242e35;
+  border: 4px solid #66737c;
+  border-radius: 8px;
+  padding: 22px;
+  width: min(480px, 94vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 15px 60px #000a;
+  text-align: center;
+}
 
-@media (max-width: 650px) {
-  #topbar {
-    font-size: 11px;
-    padding: 9px;
-  }
+.panel h2 {
+  color: #9affae;
+}
 
-  #coordinates {
-    font-size: 11px;
-  }
+.inventoryRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: #37434a;
+  margin: 5px;
+  border-radius: 4px;
+}
 
-  #hotbar {
-    bottom: 65px;
-    gap: 3px;
-    padding: 4px;
-  }
+.recipe {
+  background: #394650;
+  border-radius: 5px;
+  padding: 10px;
+  margin: 8px 0;
+}
 
-  .slot {
-    width: 43px;
-    height: 43px;
-    font-size: 22px;
-  }
+.recipe p {
+  font-size: 12px;
+  color: #cfd9df;
+}
 
-  #controls {
-    font-size: 10px;
-    line-height: 1.5;
-  }
+.recipe button {
+  font-size: 13px;
+  padding: 7px 15px;
+}
 
-  #playBtn {
-    font-size: 19px;
-    padding: 15px 35px;
-  }
+@media (max-width: 600px) {
+  #topbar { font-size: 10px; }
+  #survival { top: 55px; width: 140px; }
+  .slot { width: 38px; height: 42px; font-size: 18px; }
+  #controls { font-size: 10px; }
 }
