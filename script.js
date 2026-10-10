@@ -1,943 +1,1852 @@
 
-import * as THREE from "https://esm.sh/three@0.180.0";
+import * as THREE from 'https://esm.sh/three@0.180.0';
 
-// GALAXY BLOCKVERSE — SINGLE PLAYER
+// GALAXY BLOCKVERSE — OCEANS, VILLAGES & SURVIVAL
 const $ = id => document.getElementById(id);
-const SAVE = "galaxy-blockverse-complete-1";
-const SIZE = 22;
+const STORE = 'galaxy-blockverse-ocean-v2';
+const CS = 12, RADIUS = 1, BOTTOM = -96;
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x91caff);
-scene.fog = new THREE.Fog(0x91caff, 35, 90);
+scene.background = new THREE.Color(0x91cfff);
+scene.fog = new THREE.Fog(0x91cfff,24,75);
 
 const camera = new THREE.PerspectiveCamera(
-  75, innerWidth / innerHeight, 0.05, 150
+  75,innerWidth/innerHeight,0.05,110
 );
-camera.rotation.order = "YXZ";
+camera.rotation.order = 'YXZ';
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xd9edff,0x68874b,1.8));
-const sunlight = new THREE.DirectionalLight(0xffeac5,2.1);
-sunlight.position.set(25,45,18);
-sunlight.castShadow = true;
-sunlight.shadow.mapSize.set(1024,1024);
-sunlight.shadow.camera.left = -30;
-sunlight.shadow.camera.right = 30;
-sunlight.shadow.camera.top = 30;
-sunlight.shadow.camera.bottom = -30;
-scene.add(sunlight);
+const ambient = new THREE.HemisphereLight(
+  0xe2efff,0x5e7246,1.85
+);
+scene.add(ambient);
 
-// PROCEDURAL PIXEL TEXTURES
-function makeMaterial(hex,seed) {
-  const c=document.createElement("canvas");
-  c.width=c.height=16;
-  const ctx=c.getContext("2d");
-  const base=new THREE.Color(hex);
-  let n=seed;
-  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
-    n=(n*1664525+1013904223)>>>0;
-    const v=(n/4294967296-.5)*.22;
-    const col=base.clone();
-    col.r=THREE.MathUtils.clamp(col.r+v,0,1);
-    col.g=THREE.MathUtils.clamp(col.g+v,0,1);
-    col.b=THREE.MathUtils.clamp(col.b+v,0,1);
-    ctx.fillStyle="#"+col.getHexString();
-    ctx.fillRect(x,y,1,1);
+const sun = new THREE.DirectionalLight(0xffefce,1.6);
+sun.position.set(20,45,25);
+scene.add(sun);
+
+// ITEMS AND BLOCKS
+const ITEMS = {
+  grass:{name:'Grass',icon:'🟩',color:0x59b941,block:true},
+  dirt:{name:'Dirt',icon:'🟫',color:0x8b5a38,block:true},
+  stone:{name:'Stone',icon:'🪨',color:0x858b93,block:true},
+  wood:{name:'Wood',icon:'🪵',color:0x95643c,block:true},
+  leaves:{name:'Leaves',icon:'🍃',color:0x2e9147,block:true},
+  sand:{name:'Sand',icon:'🏖️',color:0xe4cf8a,block:true},
+  fence:{name:'Fence',icon:'🚧',color:0x976842,block:true},
+  planks:{name:'Wood Planks',icon:'🪵',color:0xc18d54,block:true},
+  glass:{name:'Glass',icon:'🪟',color:0x9edcf2,block:true},
+  chest:{name:'Chest',icon:'📦',color:0xa47439,block:true},
+  furnace:{name:'Furnace',icon:'🔥',color:0x555961,block:true},
+  wheat:{name:'Wheat',icon:'🌾',color:0xc4b54b},
+  raw_meat:{name:'Raw Meat',icon:'🥩',color:0xbf6266},
+  cooked_meat:{name:'Cooked Meat',icon:'🍖',color:0x995734},
+  coal:{name:'Coal',icon:'⚫',color:0x282c32},
+  iron:{name:'Iron Ore',icon:'🔩',color:0xc58e69},
+  diamond:{name:'Diamond',icon:'💎',color:0x4fcbd7},
+  arrows:{name:'Arrows',icon:'🏹',color:0xdac89a},
+  wood_sword:{name:'Wood Sword',icon:'🗡️',damage:5},
+  stone_sword:{name:'Stone Sword',icon:'⚔️',damage:7},
+  iron_sword:{name:'Iron Sword',icon:'⚔️',damage:9},
+  diamond_sword:{name:'Diamond Sword',icon:'💎',damage:12},
+  axe:{name:'Axe',icon:'🪓',damage:7},
+  pickaxe:{name:'Pickaxe',icon:'⛏️',damage:4},
+  bow:{name:'Bow',icon:'🏹',damage:7},
+  shield:{name:'Shield',icon:'🛡️'},
+  gold:{name:'Gold Ore',icon:'🟨',color:0xddac2e},
+  copper:{name:'Copper Ore',icon:'🟠',color:0xb46d48},
+  emerald:{name:'Emerald',icon:'💚',color:0x24c56b},
+  lava:{name:'Lava',icon:'🌋',color:0xf55c17},
+  bedrock:{name:'Bedrock',icon:'⬛',color:0x262a2e},
+  seeds:{name:'Seeds',icon:'🌱'},
+  carrot:{name:'Carrot',icon:'🥕'},
+  potato:{name:'Potato',icon:'🥔'},
+  crops:{name:'Crops',icon:'🌾',color:0x85b53a,block:true},
+  farmland:{name:'Farmland',icon:'🟤',color:0x65442a,block:true},
+  bed:{name:'Bed',icon:'🛏️',color:0xb94d54,block:true},
+  lead:{name:'Lead / Rope',icon:'🪢'},
+  saddle:{name:'Saddle',icon:'🏇'},
+  gold_sword:{name:'Gold Sword',icon:'🗡️',damage:8},
+  netherite_sword:{
+    name:'Netherite Sword',icon:'⚔️',damage:14
   }
-  const tex=new THREE.CanvasTexture(c);
-  tex.magFilter=THREE.NearestFilter;
-  tex.minFilter=THREE.NearestFilter;
-  tex.colorSpace=THREE.SRGBColorSpace;
-  return new THREE.MeshLambertMaterial({map:tex});
-}
-
-const M={
-  grass:makeMaterial(0x55b63e,1),
-  side:makeMaterial(0x699549,2),
-  dirt:makeMaterial(0x815330,3),
-  stone:makeMaterial(0x888d91,4),
-  wood:makeMaterial(0x926338,5),
-  leaves:makeMaterial(0x2d8d3e,6),
-  sand:makeMaterial(0xe7d28e,7),
-  brick:makeMaterial(0xa85448,8),
-  glass:new THREE.MeshPhongMaterial({
-    color:0xa3eaff,transparent:true,opacity:.5,
-    depthWrite:false,side:THREE.DoubleSide
-  }),
-  ore:makeMaterial(0x4c89ad,10),
-  crop:makeMaterial(0x79b13f,11),
-  chest:makeMaterial(0xa87939,12)
 };
 
-const BLOCKS={
-  1:{name:"Grass",icon:"🟩",mat:[
-    M.side,M.side,M.grass,M.dirt,M.side,M.side
-  ]},
-  2:{name:"Dirt",icon:"🟫",mat:M.dirt},
-  3:{name:"Stone",icon:"🪨",mat:M.stone},
-  4:{name:"Wood",icon:"🪵",mat:M.wood},
-  5:{name:"Leaves",icon:"🍃",mat:M.leaves},
-  6:{name:"Sand",icon:"🏖️",mat:M.sand},
-  7:{name:"Fence",icon:"🚧",mat:M.wood},
-  8:{name:"Brick",icon:"🧱",mat:M.brick},
-  9:{name:"Glass",icon:"🪟",mat:M.glass},
-  10:{name:"Ore",icon:"💎",mat:M.ore},
-  11:{name:"Crops",icon:"🌾",mat:M.crop},
-  12:{name:"Door",icon:"🚪",mat:M.wood},
-  13:{name:"Chest",icon:"📦",mat:M.chest}
-};
-
-const cube = new THREE.BoxGeometry(1,1,1);
-const world = new Map();
-const visible = new Map();
-const changes = new Map();
-const K=(x,y,z)=>`${x},${y},${z}`;
-const dirs=[
-  [1,0,0],[-1,0,0],[0,1,0],
-  [0,-1,0],[0,0,1],[0,0,-1]
+const HOTBAR = [
+  'grass','dirt','stone','wood','leaves',
+  'sand','fence','planks','glass'
 ];
-const get=(x,y,z)=>world.get(K(x,y,z))||0;
-const put=(x,y,z,t)=>{
-  if(t)world.set(K(x,y,z),t);
-  else world.delete(K(x,y,z));
+
+const RECIPES = [
+  ['planks',4,{wood:1}],
+  ['fence',4,{planks:4}],
+  ['chest',1,{planks:8}],
+  ['furnace',1,{stone:8}],
+  ['glass',4,{sand:4,coal:1}],
+  ['wood_sword',1,{planks:2,wood:1}],
+  ['stone_sword',1,{stone:2,wood:1}],
+  ['iron_sword',1,{iron:2,wood:1}],
+  ['diamond_sword',1,{diamond:2,wood:1}],
+  ['axe',1,{stone:3,wood:2}],
+  ['pickaxe',1,{stone:3,wood:2}],
+  ['bow',1,{wood:3,leaves:2}],
+  ['shield',1,{planks:6,iron:1}],
+  ['arrows',8,{stone:1,wood:1}],
+  ['bed',1,{planks:3,leaves:3}],
+  ['lead',2,{leaves:4,wood:1}],
+  ['saddle',1,{planks:4,iron:2}],
+  ['farmland',4,{dirt:4}],
+  ['crops',4,{seeds:4}],
+  ['gold_sword',1,{gold:2,wood:1}],
+  ['netherite_sword',1,{diamond:4,gold:4,iron:4}],
+  ['cooked_meat',1,{raw_meat:1,wood:1}]
+];
+
+// SAVE DATA
+let save = {};
+try {
+  save = JSON.parse(localStorage.getItem(STORE)||'{}');
+} catch {
+  save = {};
+}
+
+const edits = new Map(
+  Array.isArray(save.edits)?save.edits:[]
+);
+const chests = save.chests &&
+  typeof save.chests==='object' ? save.chests : {};
+
+const inv = {
+  grass:20,dirt:20,stone:12,wood:12,leaves:8,
+  sand:12,fence:8,planks:8,glass:4,
+  raw_meat:0,cooked_meat:3,arrows:12,
+  seeds:6,carrot:4,potato:3,lead:1,
+  saddle:1,crops:6,farmland:6,bed:1
 };
-function random(n) {
-  const v=Math.sin(n*127.1+78.233)*43758.5453;
+
+for(const [k,v] of Object.entries(save.inv||{})){
+  if(ITEMS[k] && Number.isInteger(v) && v>=0 && v<100000){
+    inv[k]=v;
+  }
+}
+
+let selected=0, equipped='fists';
+let xp=0,level=1,health=100,hunger=100;
+
+if(save.stats){
+  health=Math.max(1,Math.min(100,save.stats.health||100));
+  hunger=Math.max(0,Math.min(100,save.stats.hunger??100));
+  level=Math.max(1,save.stats.level||1);
+  xp=Math.max(0,save.stats.xp||0);
+}
+
+if(ITEMS[save.equipped] && (inv[save.equipped]||0)>0){
+  equipped=save.equipped;
+}
+
+// INFINITE HORIZONTAL TERRAIN
+const hash=(x,z)=>{
+  const v=Math.sin(x*127.1+z*311.7)*43758.5453;
   return v-Math.floor(v);
-}
-function height(x,z) {
-  let n=Math.sin(x*.14)*2.5+
-    Math.cos(z*.12)*2+
-    Math.sin((x+z)*.075)*2.1;
-  n*=Math.min(1,Math.hypot(x,z-5)/7);
-  return Math.floor(n);
+};
+
+const heightCache=new Map();
+const treeCache=new Map();
+
+function height(x,z){
+  const k=`${x},${z}`;
+  if(heightCache.has(k))return heightCache.get(k);
+
+  const continental =
+    Math.sin(x*.013)+
+    Math.cos(z*.016)+
+    Math.sin((x-z)*.009);
+
+  let h=Math.floor(
+    continental*6-3+
+    Math.sin(x*.11)*2+
+    Math.cos(z*.09)*2
+  );
+
+  if(Math.hypot(x,z-4)<17)h=Math.max(h,3);
+
+  if(x>=37&&x<=60&&z>=14&&z<=34)h=4;
+
+  heightCache.set(k,h);
+  return h;
 }
 
-// WORLD GENERATION
-for(let x=-SIZE;x<=SIZE;x++){
-  for(let z=-SIZE;z<=SIZE;z++){
-    const h=height(x,z);
-    put(x,h,z,h<-1?6:1);
-    for(let y=h-1;y>=-7;y--){
-      put(x,y,z,y>h-3?2:3);
-    }
-    if(h>1&&random(x*47+z*91)>.975)
-      put(x,h-2,z,10);
-  }
+function treeAt(x,z){
+  const k=`${x},${z}`;
+  if(treeCache.has(k))return treeCache.get(k);
+
+  const result =
+    x%7===0 &&
+    z%7===0 &&
+    hash(x/7,z/7)>.45 &&
+    height(x,z)>2 &&
+    !(x>=34&&x<=64&&z>=11&&z<=37) &&
+    Math.hypot(x,z-4)>9;
+
+  treeCache.set(k,result);
+  return result;
 }
 
-function generateTree(x,z){
-  const h=height(x,z);
-  if(h<0||h>4)return;
-  for(let y=1;y<=4;y++)put(x,h+y,z,4);
-  for(let dx=-2;dx<=2;dx++){
-    for(let dz=-2;dz<=2;dz++){
-      for(let dy=3;dy<=6;dy++){
-        if(Math.abs(dx)+Math.abs(dz)>3)continue;
-        const a=x+dx,b=z+dz;
-        if(Math.abs(a)>SIZE||Math.abs(b)>SIZE)continue;
-        if(!get(a,h+dy,b))put(a,h+dy,b,5);
+function cave(x,y,z){
+  if(y>-5 || y<BOTTOM+2)return false;
+  const n=
+    Math.sin(x*.14+y*.11)+
+    Math.cos(z*.12-y*.09)+
+    Math.sin((x+z)*.075+y*.15);
+  return n>2.34;
+}
+
+function village(x,y,z){
+  if(x<37||x>60||z<14||z>34)return null;
+
+  const h=4;
+  for(const [cx,cz] of [[42,20],[55,26]]){
+    if(x>=cx-3&&x<=cx+3&&z>=cz-3&&z<=cz+3){
+      const edge =
+        x===cx-3||x===cx+3||
+        z===cz-3||z===cz+3;
+
+      if(y===h+1&&edge&&x===cx&&z===cz-3)
+        return null;
+
+      if(y>=h+1&&y<=h+3&&edge){
+        if(
+          y===h+2 &&
+          ((x===cx&&z===cz+3)||
+           (x===cx+3&&z===cz))
+        )return 'glass';
+
+        return 'planks';
       }
+
+      if(y===h+4)return 'wood';
     }
   }
+
+  if(y===h+1&&x>=38&&x<=45&&z===28)
+    return 'farmland';
+
+  if(y===h+2&&x>=38&&x<=45&&z===28)
+    return 'crops';
+
+  if(y===h+1&&x>=46&&x<=51&&z===20)
+    return 'fence';
+
+  if(y===h+1&&x===42&&z===22)
+    return 'chest';
+
+  if(y===h+1&&x===54&&z===27)
+    return 'bed';
+
+  return null;
 }
 
-for(let x=-19;x<=19;x+=5)
-  for(let z=-19;z<=19;z+=5)
-    if(random(x*111+z*73)>.42 &&
-       Math.hypot(x,z-5)>8)
-      generateTree(x,z);
+function natural(x,y,z){
+  if(y<=BOTTOM)return 'bedrock';
 
-// PLACED STRUCTURES
-function seedStructure(){
-  const x=12,z=10,h=height(x,z);
-  put(x,h+1,z,13);
-  for(let d=-2;d<=2;d++){
-    put(x+d,h+1,z+3,7);
+  const h=height(x,z);
+
+  if(x>=37&&x<=60&&z>=14&&z<=34){
+    const structure=village(x,y,z);
+    if(structure)return structure;
   }
-}
-seedStructure();
 
-// SHAPED BUILDING PIECES
-function part(g,w,h,d,x,y,z,mat){
-  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
-  m.position.set(x,y,z);
-  m.castShadow=true;
-  g.add(m);
-  return m;
-}
-function shape(type){
-  const g=new THREE.Group();
-  if(type===7){
-    part(g,.24,1,.24,0,0,0,M.wood);
-    for(const y of [-.2,.18]){
-      part(g,1,.13,.13,0,y,0,M.wood);
-      part(g,.13,.13,1,0,y,0,M.wood);
+  // Trees can cross chunk boundaries.
+  for(let tx=Math.floor((x-2)/7)*7;tx<=x+2;tx+=7){
+    for(let tz=Math.floor((z-2)/7)*7;tz<=z+2;tz+=7){
+      if(!treeAt(tx,tz))continue;
+      const th=height(tx,tz);
+      const dx=Math.abs(x-tx);
+      const dz=Math.abs(z-tz);
+
+      if(dx===0&&dz===0&&y>th&&y<=th+4)
+        return 'wood';
+
+      if(dx<=2&&dz<=2&&dx+dz<4&&
+         y>=th+3&&y<=th+6)
+        return 'leaves';
     }
-  }else if(type===12){
-    part(g,.85,1,.15,0,0,0,M.wood);
-    part(g,.08,.08,.12,.3,0,.1,M.stone);
-  }else if(type===11){
-    for(let i=-1;i<=1;i++)
-      part(g,.12,.52,.12,i*.22,-.18,0,M.crop);
-  }else if(type===13){
-    part(g,.85,.7,.8,0,-.15,0,M.chest);
-    part(g,.85,.1,.85,0,.25,0,M.wood);
   }
-  return g;
-}
-function refresh(x,y,z){
-  const id=K(x,y,z);
-  if(visible.has(id)){
-    scene.remove(visible.get(id));
-    visible.delete(id);
+
+  if(y>h)return null;
+  if(y===h)return h<=0?'sand':'grass';
+  if(y>=h-3)return 'dirt';
+
+  if(cave(x,y,z)){
+    if(
+      y<-48 &&
+      Math.sin(x*.27+z*.12)+
+      Math.cos(z*.2-y*.14)>1.25
+    )return 'lava';
+
+    return null;
   }
-  const type=get(x,y,z);
-  if(!type)return;
-  if(!dirs.some(([a,b,c])=>!get(x+a,y+b,z+c)))return;
 
-  const obj=[7,11,12,13].includes(type)
-    ?shape(type)
-    :new THREE.Mesh(cube,BLOCKS[type].mat);
+  const ore=hash(x*13+y*7,z*17+y*11);
 
-  obj.position.set(x,y,z);
-  obj.userData.block=true;
-  obj.userData.type=type;
-  obj.traverse(o=>{
-    if(o.isMesh){
-      o.receiveShadow=true;
-      o.castShadow=[4,5,7,12,13].includes(type);
-    }
-  });
-  scene.add(obj);
-  visible.set(id,obj);
+  if(y<-42&&ore>.987)return 'diamond';
+  if(y<-30&&ore>.977)return 'gold';
+  if(y<-10&&ore>.972)return 'iron';
+  if(y<-6&&ore>.968)return 'copper';
+  if(y<-20&&ore>.992)return 'emerald';
+  if(y<h-5&&ore>.947)return 'coal';
+
+  return 'stone';
 }
-function editBlock(x,y,z,t,record=true){
-  if(Math.abs(x)>SIZE||Math.abs(z)>SIZE||
-     y < -12||y>35)return false;
-  put(x,y,z,t);
-  if(record)changes.set(K(x,y,z),t);
-  refresh(x,y,z);
-  dirs.forEach(([a,b,c])=>refresh(x+a,y+b,z+c));
+
+function block(x,y,z){
+  const k=`${x},${y},${z}`;
+  return edits.has(k)?edits.get(k):natural(x,y,z);
+}
+
+function change(x,y,z,id){
+  if(y<=BOTTOM||y>55)return false;
+  edits.set(`${x},${y},${z}`,id);
+  rebuildNearby(x,z);
   return true;
 }
 
-// GAME DATA
-const inventory={
-  1:20,2:15,3:10,4:12,5:8,6:8,7:8,8:8,9:8,
-  10:0,11:4,12:2,13:2,
-  meat:4,wheat:0,arrows:16,coins:0
-};
+// CHUNK MESH GENERATION
+const chunks=new Map();
+const waterChunks=new Map();
 
-const weapons={
-  fists:{name:"Fists",damage:3,range:3},
-  woodSword:{name:"Wooden Sword",damage:5,range:4},
-  stoneSword:{name:"Stone Sword",damage:7,range:4},
-  ironSword:{name:"Iron Sword",damage:9,range:4},
-  diamondSword:{name:"Diamond Sword",damage:12,range:4},
-  axe:{name:"Battle Axe",damage:10,range:3.5},
-  bow:{name:"Bow",damage:7,range:24},
-  crossbow:{name:"Crossbow",damage:11,range:30},
-  trident:{name:"Trident",damage:12,range:6}
-};
-
-const player={
-  health:100,hunger:100,xp:0,level:1,
-  yaw:0,pitch:0,vy:0,
-  flying:false,creative:false,grounded:false
-};
-const owned=new Set(["fists"]);
-let equipped="fists",selected=1;
-let gameTime=0;
-
-let saved=null;
-try{saved=JSON.parse(localStorage.getItem(SAVE)||"null");}
-catch{}
-
-if(saved){
-  if(Array.isArray(saved.edits)){
-    for(const item of saved.edits){
-      if(!Array.isArray(item)||item.length!==2)continue;
-      const [id,t]=item;
-      if(!/^-?\d+,-?\d+,-?\d+$/.test(id))continue;
-      if(!Number.isInteger(t)||t<0||t>13)continue;
-      const [x,y,z]=id.split(",").map(Number);
-      if(Math.abs(x)>SIZE||Math.abs(z)>SIZE||
-         y < -12||y>35)continue;
-      put(x,y,z,t);
-      changes.set(id,t);
-    }
-  }
-  if(saved.inventory){
-    for(const id of Object.keys(inventory)){
-      const v=saved.inventory[id];
-      if(Number.isInteger(v)&&v>=0&&v<100000)
-        inventory[id]=v;
-    }
-  }
-  if(saved.player){
-    for(const name of ["health","hunger","xp","level"]){
-      if(Number.isFinite(saved.player[name]))
-        player[name]=saved.player[name];
-    }
-  }
-  if(Array.isArray(saved.owned))
-    saved.owned.forEach(id=>{if(weapons[id])owned.add(id);});
-  if(owned.has(saved.equipped))equipped=saved.equipped;
-  if(Number.isFinite(saved.gameTime))
-    gameTime=saved.gameTime;
-}
-
-for(const id of world.keys()){
-  const [x,y,z]=id.split(",").map(Number);
-  refresh(x,y,z);
-}
-
-camera.position.set(0,height(0,5)+2.12,5);
-if(Array.isArray(saved?.position)&&
-   saved.position.length===3&&
-   saved.position.every(Number.isFinite)){
-  const [x,y,z]=saved.position;
-  if(Math.abs(x)<SIZE&&Math.abs(z)<SIZE&&y>-10&&y<35)
-    camera.position.set(x,y,z);
-}
-
-// WATER AND SKY
-const water=new THREE.Mesh(
-  new THREE.PlaneGeometry(SIZE*2+1,SIZE*2+1),
-  new THREE.MeshPhongMaterial({
-    color:0x278ccc,transparent:true,opacity:.56,
-    depthWrite:false,side:THREE.DoubleSide
-  })
-);
-water.rotation.x=-Math.PI/2;
-water.position.y=-2.25;
-scene.add(water);
-
-const clouds=[];
-const cloudMat=new THREE.MeshBasicMaterial({color:0xffffff});
-for(let i=0;i<9;i++){
-  const g=new THREE.Group();
-  for(let j=0;j<3;j++)
-    part(g,5,1.2,3,j*3,0,0,cloudMat);
-  g.position.set(
-    random(i+3)*75-37,
-    23+random(i+7)*9,
-    random(i+11)*75-37
-  );
-  scene.add(g);
-  clouds.push(g);
-}
-
-// CREATURES
-const mobs=[];
-const mobColors={
-  cow:0xf1eee6,pig:0xf5a6ac,
-  sheep:0xf7f5ed,chicken:0xfff4d4,
-  wolf:0x929498,zombie:0x589c61,
-  skeleton:0xd3d2c7,spider:0x39323f
-};
-
-function spawnMob(kind,x,z){
-  const g=new THREE.Group(),legs=[];
-  const hostile=["zombie","skeleton","spider"].includes(kind);
-  const small=kind==="chicken";
-  const w=small?.45:.8,l=small?.65:1.2;
-  const bodyY=small?.45:.8;
-  const col=mobColors[kind];
-
-  part(g,w,.65,l,0,bodyY,0,
-    new THREE.MeshLambertMaterial({color:col}));
-  const skin=new THREE.MeshLambertMaterial({color:col});
-  part(g,small?.35:.52,.52,.48,0,bodyY+.2,
-    -l/2-.2,skin);
-
-  const legMat=new THREE.MeshLambertMaterial({
-    color:hostile?0x494554:0x746b66
-  });
-  for(const xx of [-w*.3,w*.3])
-    for(const zz of [-l*.3,l*.3])
-      legs.push(part(g,.17,.4,.17,xx,.22,zz,legMat));
-
-  const eyeMat=new THREE.MeshBasicMaterial({
-    color:hostile?0xff3333:0x151515
-  });
-  for(const xx of [-.16,.16])
-    part(g,.09,.09,.06,xx,bodyY+.25,
-      -l/2-.49,eyeMat);
-
-  const h=height(Math.round(x),Math.round(z));
-  g.position.set(x,h+.5,z);
-  scene.add(g);
-  const m={
-    group:g,legs,kind,hostile,
-    hp:hostile?35:20,
-    direction:random(x*13+z*31)*6.28,
-    timer:2,speed:hostile?1.9:.65,
-    cooldown:0,phase:Math.random()*6
-  };
-  g.userData.mob=m;
-  mobs.push(m);
-  return m;
-}
-
-for(let i=0;i<32;i++){
-  const x=Math.floor(random(i*43+11)*39)-19;
-  const z=Math.floor(random(i*79+21)*39)-19;
-  if(height(x,z)>=0&&Math.hypot(x,z-5)>5){
-    spawnMob(
-      ["cow","pig","sheep","chicken","wolf"][i%5],
-      x,z
-    );
-  }
-}
-for(let i=0;i<9;i++){
-  const x=Math.floor(random(i*63+111)*40)-20;
-  const z=Math.floor(random(i*83+119)*40)-20;
-  if(height(x,z)>=0&&Math.hypot(x,z-5)>12)
-    spawnMob(["zombie","skeleton","spider"][i%3],x,z);
-}
-
-let noticeTime=0;
-function notify(s){
-  $("notice").textContent=s;
-  noticeTime=2.7;
-}
-function addXP(value){
-  player.xp+=value;
-  while(player.xp>=player.level*20){
-    player.xp-=player.level*20;
-    player.level++;
-    notify("LEVEL UP! "+player.level);
-  }
-}
-function defeat(m){
-  scene.remove(m.group);
-  mobs.splice(mobs.indexOf(m),1);
-  if(m.hostile){
-    addXP(7);
-    if(m.kind==="skeleton")inventory.arrows+=2;
-    inventory.coins+=1;
-  }else{
-    addXP(2);
-    inventory.meat+=1;
-  }
-  notify("Loot collected from "+m.kind);
-}
-function updateMobs(dt,t,night){
-  for(const m of mobs){
-    m.group.visible=!m.hostile||night;
-    if(!m.group.visible)continue;
-    m.timer-=dt;
-    m.cooldown=Math.max(0,m.cooldown-dt);
-    if(m.timer<=0){
-      m.timer=1+Math.random()*3;
-      m.direction+=(Math.random()-.5)*2.5;
-    }
-    const dx=camera.position.x-m.group.position.x;
-    const dz=camera.position.z-m.group.position.z;
-    const dist=Math.hypot(dx,dz);
-    let speed=m.speed;
-    if(m.hostile&&dist<10){
-      m.direction=Math.atan2(-dx,-dz);
-      speed=2.1;
-      if(dist<1.5&&m.cooldown===0&&!player.creative){
-        player.health=Math.max(0,player.health-7);
-        m.cooldown=1.6;
-        notify("Monster attack!");
-      }
-    }
-    const nx=m.group.position.x-Math.sin(m.direction)*speed*dt;
-    const nz=m.group.position.z-Math.cos(m.direction)*speed*dt;
-    if(Math.abs(nx)<SIZE-2&&Math.abs(nz)<SIZE-2){
-      const h=height(Math.round(nx),Math.round(nz));
-      const old=height(
-        Math.round(m.group.position.x),
-        Math.round(m.group.position.z)
-      );
-      if(h>=0&&Math.abs(h-old)<=1)
-        m.group.position.set(nx,h+.5,nz);
-      else m.direction+=Math.PI;
-    }else m.direction+=Math.PI;
-    m.group.rotation.y=m.direction;
-    m.legs.forEach((leg,i)=>{
-      leg.rotation.x=Math.sin(t*8+m.phase+i*Math.PI)*.3;
-    });
-  }
-}
-
-// CRAFTING
-const recipes=[
-  {name:"Wooden Sword",cost:{"4":3},weapon:"woodSword"},
-  {name:"Stone Sword",cost:{"3":3,"4":1},weapon:"stoneSword"},
-  {name:"Iron Sword",cost:{"10":3,"4":1},weapon:"ironSword"},
-  {name:"Diamond Sword",cost:{"10":10,"4":2},weapon:"diamondSword"},
-  {name:"Battle Axe",cost:{"3":4,"4":2},weapon:"axe"},
-  {name:"Bow",cost:{"4":3,"5":2},weapon:"bow"},
-  {name:"Crossbow",cost:{"4":4,"10":3},weapon:"crossbow"},
-  {name:"Trident",cost:{"10":7,"4":2},weapon:"trident"},
-  {name:"8 Arrows",cost:{"3":1,"4":1},item:"arrows",qty:8},
-  {name:"4 Fences",cost:{"4":4},item:"7",qty:4},
-  {name:"4 Bricks",cost:{"2":4,"3":2},item:"8",qty:4},
-  {name:"4 Glass Blocks",cost:{"6":4},item:"9",qty:4},
-  {name:"1 Door",cost:{"4":3},item:"12",qty:1},
-  {name:"1 Treasure Chest",cost:{"4":8},item:"13",qty:1},
-  {name:"4 Crops",cost:{"2":2},item:"11",qty:4},
-  {name:"3 Meals",cost:{"wheat":3},item:"meat",qty:3}
+const dirs=[
+  [1,0,0],[-1,0,0],
+  [0,1,0],[0,-1,0],
+  [0,0,1],[0,0,-1]
 ];
 
-function canCraft(r){
-  return Object.entries(r.cost).every(
-    ([id,n])=>(inventory[id]||0)>=n
-  )&&(!r.weapon||!owned.has(r.weapon));
-}
-function craft(r){
-  if(!canCraft(r))return notify("Missing materials");
-  for(const [id,n] of Object.entries(r.cost))
-    inventory[id]-=n;
-  if(r.weapon){
-    owned.add(r.weapon);
-    equipped=r.weapon;
-  }else{
-    inventory[r.item]=(inventory[r.item]||0)+r.qty;
+const faces=[
+  {
+    n:[1,0,0],
+    p:[
+      [.5,-.5,-.5],[.5,.5,-.5],
+      [.5,.5,.5],[.5,-.5,.5]
+    ],
+    s:.82
+  },
+  {
+    n:[-1,0,0],
+    p:[
+      [-.5,-.5,.5],[-.5,.5,.5],
+      [-.5,.5,-.5],[-.5,-.5,-.5]
+    ],
+    s:.8
+  },
+  {
+    n:[0,1,0],
+    p:[
+      [-.5,.5,-.5],[-.5,.5,.5],
+      [.5,.5,.5],[.5,.5,-.5]
+    ],
+    s:1.1
+  },
+  {
+    n:[0,-1,0],
+    p:[
+      [-.5,-.5,.5],[-.5,-.5,-.5],
+      [.5,-.5,-.5],[.5,-.5,.5]
+    ],
+    s:.58
+  },
+  {
+    n:[0,0,1],
+    p:[
+      [.5,-.5,.5],[.5,.5,.5],
+      [-.5,.5,.5],[-.5,-.5,.5]
+    ],
+    s:.92
+  },
+  {
+    n:[0,0,-1],
+    p:[
+      [-.5,-.5,-.5],[-.5,.5,-.5],
+      [.5,.5,-.5],[.5,-.5,-.5]
+    ],
+    s:.76
   }
-  notify("Crafted "+r.name);
-  renderCraft();
-  renderInventory();
-}
-function renderCraft(){
-  const root=$("recipes");
-  root.replaceChildren();
-  for(const r of recipes){
-    const row=document.createElement("div");
-    row.className="recipe";
-    const left=document.createElement("div");
-    const strong=document.createElement("strong");
-    strong.textContent=r.name;
-    const desc=document.createElement("p");
-    desc.textContent=Object.entries(r.cost).map(
-      ([id,n])=>`${n} ${BLOCKS[id]?.name||id}`
-    ).join(" + ");
-    left.append(strong,desc);
-    const btn=document.createElement("button");
-    btn.textContent=r.weapon&&owned.has(r.weapon)?"OWNED":"CRAFT";
-    btn.disabled=!canCraft(r);
-    btn.onclick=()=>craft(r);
-    row.append(left,btn);
-    root.append(row);
-  }
-}
-function renderInventory(){
-  const root=$("items");
-  root.replaceChildren();
-  for(const [id,qty] of Object.entries(inventory)){
-    const row=document.createElement("div");
-    row.className="item";
-    const name=document.createElement("span");
-    name.textContent=BLOCKS[id]?.name||id;
-    const value=document.createElement("span");
-    value.textContent=qty;
-    row.append(name,value);
-    if(BLOCKS[id]){
-      const btn=document.createElement("button");
-      btn.textContent="SELECT";
-      btn.onclick=()=>{
-        selected=Number(id);
-        closePanels();
-        notify("Selected "+BLOCKS[id].name);
-      };
-      row.append(btn);
-    }
-    root.append(row);
-  }
-  for(const id of owned){
-    if(id==="fists")continue;
-    const row=document.createElement("div");
-    row.className="item";
-    const name=document.createElement("span");
-    name.textContent=weapons[id].name;
-    const btn=document.createElement("button");
-    btn.textContent="EQUIP";
-    btn.onclick=()=>{
-      equipped=id;
-      closePanels();
-      notify("Equipped "+weapons[id].name);
-    };
-    row.append(name,btn);
-    root.append(row);
-  }
-}
-function eat(){
-  if(inventory.meat<1)return notify("No food");
-  inventory.meat--;
-  player.hunger=Math.min(100,player.hunger+25);
-  player.health=Math.min(100,player.health+5);
-  notify("Food eaten");
-}
+];
 
-// USER INPUT
-const keys={};
-let playing=false,attackCooldown=0;
-let foodTimer=0,saveTimer=0;
-let uiPanel=null;
+const voxelMat=new THREE.MeshLambertMaterial({
+  vertexColors:true,
+  side:THREE.FrontSide
+});
 
-function makeHotbar(){
-  const root=$("hotbar");
-  root.replaceChildren();
-  for(let n=1;n<=9;n++){
-    const item=document.createElement("div");
-    item.className="slot";
-    item.dataset.id=n;
-    item.innerHTML=`${BLOCKS[n].icon}<small>${n}</small>`;
-    root.append(item);
-  }
-}
-makeHotbar();
+function buildChunk(cx,cz){
+  const positions=[];
+  const colors=[];
+  const normals=[];
+  const indices=[];
 
-function closePanels(){
-  $("inventoryPanel").hidden=true;
-  $("craftPanel").hidden=true;
-  uiPanel=null;
-}
-function openPanel(id){
-  uiPanel=id;
-  document.exitPointerLock?.();
-  $("inventoryPanel").hidden=id!=="inventoryPanel";
-  $("craftPanel").hidden=id!=="craftPanel";
-  if(id==="inventoryPanel")renderInventory();
-  else renderCraft();
-}
-$("play").onclick=()=>{
-  closePanels();
-  renderer.domElement.requestPointerLock();
-};
-document.querySelectorAll(".close").forEach(b=>{
-  b.onclick=()=>{
-    closePanels();
-    renderer.domElement.requestPointerLock();
-  };
-});
-document.addEventListener("pointerlockchange",()=>{
-  playing=document.pointerLockElement===renderer.domElement;
-  $("menu").style.display=playing||uiPanel?"none":"flex";
-  $("hud").hidden=!playing;
-  if(!playing){
-    Object.keys(keys).forEach(k=>keys[k]=false);
-  }
-});
-document.addEventListener("mousemove",e=>{
-  if(!playing)return;
-  player.yaw-=e.movementX*.002;
-  player.pitch=THREE.MathUtils.clamp(
-    player.pitch-e.movementY*.002,-1.48,1.48
-  );
-});
-document.addEventListener("keydown",e=>{
-  keys[e.code]=true;
-  if(["Space","ArrowUp","ArrowDown",
-      "ArrowLeft","ArrowRight"].includes(e.code))
-    e.preventDefault();
-  if(!playing)return;
-  if(e.code.startsWith("Digit")){
-    const n=Number(e.code.slice(5));
-    if(n>=1&&n<=9)selected=n;
-  }
-  if(e.code==="KeyF"&&!e.repeat){
-    player.flying=!player.flying;
-    player.vy=0;
-    notify(player.flying?"Fly ON":"Fly OFF");
-  }
-  if(e.code==="KeyG"&&!e.repeat){
-    player.creative=!player.creative;
-    notify(player.creative?"CREATIVE":"SURVIVAL");
-  }
-  if(e.code==="KeyE"&&!e.repeat)openPanel("inventoryPanel");
-  if(e.code==="KeyC"&&!e.repeat)openPanel("craftPanel");
-  if(e.code==="KeyR"&&!e.repeat)eat();
-  if(e.code==="KeyP"&&!e.repeat)saveGame();
-  if(e.code==="KeyQ"&&!e.repeat){
-    const list=[...owned];
-    equipped=list[(list.indexOf(equipped)+1)%list.length];
-    notify("Equipped "+weapons[equipped].name);
-  }
-});
-document.addEventListener("keyup",e=>keys[e.code]=false);
-document.addEventListener("contextmenu",e=>e.preventDefault());
+  const x0=cx*CS;
+  const z0=cz*CS;
 
-// COLLISION
-function collides(pos){
-  for(const dx of [-.27,.27])
-    for(const dz of [-.27,.27])
-      for(const dy of [-1.48,-.85,-.12]){
-        const t=get(
-          Math.round(pos.x+dx),
-          Math.round(pos.y+dy),
-          Math.round(pos.z+dz)
+  for(let x=x0;x<x0+CS;x++){
+    for(let z=z0;z<z0+CS;z++){
+      const ymax=height(x,z)+7;
+
+      for(let y=BOTTOM+1;y<=ymax;y++){
+        const id=block(x,y,z);
+        if(!id)continue;
+
+        const rgb=new THREE.Color(
+          ITEMS[id]?.color||0x888888
         );
-        if(t&&t!==11&&t!==12)return true;
+        const jitter=.93+
+          hash(x+y*71,z+y*13)*.13;
+
+        for(let f=0;f<6;f++){
+          const [dx,dy,dz]=dirs[f];
+
+          if(block(x+dx,y+dy,z+dz))
+            continue;
+
+          const base=positions.length/3;
+
+          for(const p of faces[f].p){
+            positions.push(
+              x+p[0],y+p[1],z+p[2]
+            );
+
+            normals.push(...faces[f].n);
+
+            const s=faces[f].s*jitter;
+            colors.push(
+              Math.min(1,rgb.r*s),
+              Math.min(1,rgb.g*s),
+              Math.min(1,rgb.b*s)
+            );
+          }
+
+          indices.push(
+            base,base+1,base+2,
+            base,base+2,base+3
+          );
+        }
       }
+    }
+  }
+
+  const geo=new THREE.BufferGeometry();
+
+  geo.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(positions,3)
+  );
+  geo.setAttribute(
+    'normal',
+    new THREE.Float32BufferAttribute(normals,3)
+  );
+  geo.setAttribute(
+    'color',
+    new THREE.Float32BufferAttribute(colors,3)
+  );
+  geo.setIndex(indices);
+  geo.computeBoundingSphere();
+
+  const mesh=new THREE.Mesh(geo,voxelMat);
+  mesh.userData.terrain=true;
+  scene.add(mesh);
+  return mesh;
+}
+
+function disposeChunk(id){
+  const mesh=chunks.get(id);
+  if(mesh){
+    scene.remove(mesh);
+    mesh.geometry.dispose();
+    chunks.delete(id);
+  }
+
+  const sea=waterChunks.get(id);
+  if(sea){
+    scene.remove(sea);
+    sea.geometry.dispose();
+    waterChunks.delete(id);
+  }
+}
+
+const waterMat=new THREE.MeshPhongMaterial({
+  color:0x258bce,
+  transparent:true,
+  opacity:.64,
+  side:THREE.DoubleSide,
+  depthWrite:false
+});
+
+function buildSea(cx,cz){
+  const vertices=[];
+  const indices=[];
+
+  for(let x=cx*CS;x<(cx+1)*CS;x++){
+    for(let z=cz*CS;z<(cz+1)*CS;z++){
+      if(height(x,z)>0)continue;
+
+      const b=vertices.length/3;
+      vertices.push(
+        x-.5,.54,z-.5,
+        x+.5,.54,z-.5,
+        x+.5,.54,z+.5,
+        x-.5,.54,z+.5
+      );
+      indices.push(
+        b,b+1,b+2,b,b+2,b+3
+      );
+    }
+  }
+
+  if(!indices.length)return;
+
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(vertices,3)
+  );
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+
+  const mesh=new THREE.Mesh(geometry,waterMat);
+  scene.add(mesh);
+  waterChunks.set(`${cx},${cz}`,mesh);
+}
+
+function rebuildNearby(x,z){
+  const cx=Math.floor(x/CS);
+  const cz=Math.floor(z/CS);
+
+  for(let a=cx-1;a<=cx+1;a++){
+    for(let b=cz-1;b<=cz+1;b++){
+      const id=`${a},${b}`;
+      if(chunks.has(id)){
+        disposeChunk(id);
+        chunks.set(id,buildChunk(a,b));
+        buildSea(a,b);
+      }
+    }
+  }
+}
+
+let previousChunk='';
+
+function streamChunks(){
+  const cx=Math.floor(camera.position.x/CS);
+  const cz=Math.floor(camera.position.z/CS);
+  const id=`${cx},${cz}`;
+
+  if(previousChunk===id)return;
+  previousChunk=id;
+
+  const needed=new Set();
+
+  for(let x=cx-RADIUS;x<=cx+RADIUS;x++){
+    for(let z=cz-RADIUS;z<=cz+RADIUS;z++){
+      needed.add(`${x},${z}`);
+    }
+  }
+
+  for(const id of [...chunks.keys()]){
+    if(!needed.has(id))disposeChunk(id);
+  }
+
+  for(const id of needed){
+    if(!chunks.has(id)){
+      const [x,z]=id.split(',').map(Number);
+      chunks.set(id,buildChunk(x,z));
+      buildSea(x,z);
+    }
+  }
+
+  createNearbyMobs(cx,cz);
+}
+
+// PLAYER AND COLLISION
+const player={
+  vy:0,
+  grounded:false,
+  yaw:0,
+  pitch:0,
+  flying:false,
+  creative:false
+};
+
+camera.position.set(0,height(0,4)+2.3,4);
+
+if(
+  Array.isArray(save.pos)&&
+  save.pos.length===3&&
+  save.pos.every(Number.isFinite)&&
+  save.pos[1]>BOTTOM+2
+){
+  camera.position.fromArray(save.pos);
+}
+
+const keys={};
+const movement=new THREE.Vector3();
+
+function solid(x,y,z){
+  const b=block(
+    Math.round(x),
+    Math.round(y),
+    Math.round(z)
+  );
+  return !!b && b!=='leaves';
+}
+
+function collision(p){
+  for(const dx of [-.27,.27]){
+    for(const dz of [-.27,.27]){
+      for(const dy of [-1.48,-.85,-.12]){
+        if(solid(
+          p.x+dx,p.y+dy,p.z+dz
+        ))return true;
+      }
+    }
+  }
   return false;
 }
-function moveAxis(axis,amount){
-  const p=camera.position.clone();
-  p[axis]+=amount;
-  if(!collides(p)){
-    camera.position[axis]=p[axis];
+
+function moveAxis(axis,step){
+  const n=camera.position.clone();
+  n[axis]+=step;
+
+  if(!collision(n)){
+    camera.position[axis]=n[axis];
     return true;
   }
   return false;
 }
 
-// INTERACTION
-const raycaster=new THREE.Raycaster();
-const center=new THREE.Vector2(0,0);
+// ANIMAL AND MONSTER MODELS
+const mobs=[];
+const spawned=new Set();
 
-document.addEventListener("mousedown",e=>{
-  if(!playing||![0,2].includes(e.button))return;
-  if(attackCooldown>0)return;
+const mobColors={
+  cow:0xe5e2d8,
+  pig:0xf3a6b5,
+  sheep:0xf5f4e8,
+  chicken:0xf8f0d6,
+  horse:0x805636,
+  wolf:0x9a9993,
+  fish:0xec9b32,
+  squid:0x315b81,
+  villager:0xbba18a,
+  zombie:0x5a9b65,
+  skeleton:0xd6d2c5,
+  spider:0x383442,
+  creeper:0x449d40
+};
 
-  raycaster.setFromCamera(center,camera);
-  raycaster.far=e.button===0?weapons[equipped].range:6;
-  const objects=[
-    ...visible.values(),
-    ...mobs.filter(m=>m.group.visible).map(m=>m.group)
-  ];
-  const hits=raycaster.intersectObjects(objects,true);
-  if(!hits.length)return;
-  const hit=hits[0];
+function bodyPart(g,w,h,d,color,x,y,z){
+  const m=new THREE.Mesh(
+    new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshLambertMaterial({color})
+  );
+  m.position.set(x,y,z);
+  g.add(m);
+  return m;
+}
 
-  let target=hit.object;
-  while(target.parent&&!target.userData.block&&
-        !target.userData.mob){
-    target=target.parent;
-  }
-  const mob=target.userData.mob;
+function createMob(kind,x,z){
+  const g=new THREE.Group();
+  const legs=[];
 
-  if(e.button===0){
-    if(mob){
-      if(["bow","crossbow"].includes(equipped)){
-        if(inventory.arrows<=0)
-          return notify("No arrows");
-        inventory.arrows--;
-      }
-      mob.hp-=weapons[equipped].damage;
-      attackCooldown=.35;
-      if(mob.hp<=0)defeat(mob);
-      else notify("Hit "+mob.kind);
-      return;
-    }
-    if(target.userData.block){
-      const p=target.position;
-      const type=get(p.x,p.y,p.z);
-      if(editBlock(p.x,p.y,p.z,0)){
-        inventory[type]=(inventory[type]||0)+1;
-        if(type===11)inventory.wheat+=2;
-        addXP(1);
-        notify("Mined "+BLOCKS[type].name);
-      }
-    }
-  }
+  const small=
+    kind==='chicken'||kind==='fish';
 
-  if(e.button===2&&target.userData.block){
-    const p=target.position;
-    const type=get(p.x,p.y,p.z);
+  const hostile=[
+    'zombie','skeleton','spider','creeper'
+  ].includes(kind);
 
-    if(type===13){
-      inventory.coins+=2;
-      inventory.meat+=2;
-      inventory[10]+=1;
-      editBlock(p.x,p.y,p.z,0);
-      notify("Treasure chest! Coins, food and ore!");
-      return;
-    }
+  const c=mobColors[kind];
 
-    if(!player.creative&&(inventory[selected]||0)<=0)
-      return notify("No blocks available");
+  const w=small?.5:.85;
+  const l=small?.65:1.2;
+  const by=small?.5:.82;
 
-    const pos=p.clone().add(hit.face.normal).round();
-    const overlap=
-      Math.abs(pos.x-camera.position.x)<.8&&
-      Math.abs(pos.z-camera.position.z)<.8&&
-      pos.y+.5>camera.position.y-1.62&&
-      pos.y-.5<camera.position.y+.2;
+  bodyPart(g,w,.65,l,c,0,by,0);
 
-    if(!overlap&&!get(pos.x,pos.y,pos.z)){
-      if(editBlock(pos.x,pos.y,pos.z,selected)){
-        if(!player.creative)inventory[selected]--;
-        notify("Placed "+BLOCKS[selected].name);
-      }
+  bodyPart(
+    g,
+    small?.4:.53,.5,.48,
+    c,0,by+.17,-l/2-.19
+  );
+
+  for(const xx of [-w*.3,w*.3]){
+    for(const zz of [-l*.3,l*.3]){
+      legs.push(
+        bodyPart(
+          g,.16,.4,.16,
+          hostile?0x454049:0x7b726d,
+          xx,.22,zz
+        )
+      );
     }
   }
-});
 
-// SAVE
-function saveGame(){
-  try{
-    localStorage.setItem(SAVE,JSON.stringify({
-      edits:[...changes],
-      inventory,
-      player:{
-        health:player.health,hunger:player.hunger,
-        xp:player.xp,level:player.level
-      },
-      owned:[...owned],equipped,
-      position:camera.position.toArray(),
-      gameTime
-    }));
-    notify("World saved");
-  }catch{
-    notify("Save failed — browser storage full");
+  for(const xx of [-.15,.15]){
+    bodyPart(
+      g,.09,.09,.05,
+      hostile?0xff3333:0x111111,
+      xx,by+.24,-l/2-.46
+    );
+  }
+
+  // Distinguishing animal features.
+  if(kind==='pig'||kind==='cow'){
+    bodyPart(
+      g,.28,.18,.14,
+      kind==='pig'?0xd98391:0xdca3a7,
+      0,by+.08,-l/2-.5
+    );
+  }
+
+  if(kind==='chicken'){
+    bodyPart(
+      g,.2,.13,.2,
+      0xffc12f,0,by+.08,-l/2-.47
+    );
+  }
+
+  if(kind==='horse'){
+    bodyPart(g,.18,.55,.18,0x30221b,0,by+.35,.1);
+    bodyPart(g,.2,.32,.16,0x30221b,0,by+.3,l/2+.1);
+  }
+
+  if(kind==='wolf'||kind==='horse'){
+    for(const xx of [-.21,.21]){
+      bodyPart(
+        g,.14,.25,.16,c,
+        xx,by+.55,-l/2-.2
+      );
+    }
+  }
+
+  if(kind==='creeper'){
+    bodyPart(
+      g,.3,.38,.06,
+      0x17221c,0,by+.06,-l/2-.45
+    );
+  }
+
+  if(kind==='villager'){
+    bodyPart(
+      g,.15,.19,.2,
+      0xc08468,0,by+.15,-l/2-.46
+    );
+  }
+
+  const aquatic=kind==='fish'||kind==='squid';
+
+  g.position.set(
+    x,
+    aquatic?0:height(Math.round(x),Math.round(z))+.5,
+    z
+  );
+
+  scene.add(g);
+
+  const mob={
+    g,legs,kind,hostile,
+    hp:hostile?28:18,
+    angle:hash(x,z)*6.28,
+    timer:2,cooldown:0,
+    led:false,ridden:false,love:0
+  };
+
+  g.userData.mob=mob;
+  mobs.push(mob);
+  return mob;
+}
+
+function createNearbyMobs(cx,cz){
+  for(let a=cx-1;a<=cx+1;a++){
+    for(let b=cz-1;b<=cz+1;b++){
+      const id=`${a},${b}`;
+      if(spawned.has(id))continue;
+
+      spawned.add(id);
+
+      for(let i=0;i<3;i++){
+        const x=a*CS+Math.floor(
+          hash(a*47+i,b*13)*CS
+        );
+        const z=b*CS+Math.floor(
+          hash(a*31,b*17+i)*CS
+        );
+
+        const ocean=height(x,z)<=0;
+
+        const kind=ocean
+          ? ['fish','fish','squid'][
+              Math.floor(hash(x*3,z*2)*3)
+            ]
+          : [
+              'cow','pig','sheep','chicken',
+              'horse','wolf','zombie',
+              'skeleton','spider','creeper'
+            ][Math.floor(hash(x*3,z*2)*10)];
+
+        createMob(kind,x,z);
+      }
+    }
+  }
+
+  if(
+    cx>=2&&cx<=5&&cz>=0&&cz<=3&&
+    !spawned.has('village-people')
+  ){
+    spawned.add('village-people');
+    createMob('villager',43,23);
+    createMob('villager',55,23);
+    createMob('horse',48,29);
+  }
+
+  for(let i=mobs.length-1;i>=0;i--){
+    if(
+      mobs[i].g.position.distanceTo(camera.position)>85
+    ){
+      scene.remove(mobs[i].g);
+      mobs.splice(i,1);
+    }
   }
 }
-$("reset").onclick=()=>{
-  if(confirm("Reset this BLOCKVERSE world?")){
-    localStorage.removeItem(SAVE);
+
+let dayClock=Number.isFinite(save.dayClock)
+  ? save.dayClock : 0;
+
+let noticeTimer=0;
+let damageTimer=0;
+let ridden=null;
+
+function tell(t){
+  $('notice').textContent=t;
+  noticeTimer=2.5;
+}
+
+function addItem(id,n=1){
+  inv[id]=(inv[id]||0)+n;
+}
+
+function addXP(n){
+  xp+=n;
+  while(xp>=level*20){
+    xp-=level*20;
+    level++;
+    tell(`Level ${level}!`);
+  }
+}
+
+function killMob(m){
+  scene.remove(m.g);
+  mobs.splice(mobs.indexOf(m),1);
+
+  if(!m.hostile){
+    if(m.kind==='fish')addItem('raw_meat',1);
+
+    if([
+      'cow','pig','sheep','chicken'
+    ].includes(m.kind)){
+      addItem(
+        'raw_meat',
+        m.kind==='chicken'?1:2
+      );
+    }
+  }else if(m.kind==='skeleton'){
+    addItem('arrows',2);
+  }
+
+  addXP(m.hostile?7:3);
+  tell(`Loot collected from ${m.kind}`);
+}
+
+function updateMobs(dt,time,night){
+  for(const m of mobs){
+    m.g.visible=!m.hostile||night;
+    if(!m.g.visible)continue;
+
+    m.timer-=dt;
+    m.cooldown=Math.max(0,m.cooldown-dt);
+
+    if(m.timer<0){
+      m.timer=1+Math.random()*3;
+      m.angle+=(Math.random()-.5)*2.7;
+    }
+
+    const dx=camera.position.x-m.g.position.x;
+    const dz=camera.position.z-m.g.position.z;
+    const d=Math.hypot(dx,dz);
+
+    let speed=.7;
+
+    if(m.ridden){
+      m.g.position.set(
+        camera.position.x,
+        camera.position.y-1.15,
+        camera.position.z
+      );
+      continue;
+    }
+
+    if(m.led&&d>2){
+      m.angle=Math.atan2(-dx,-dz);
+      speed=2.6;
+    }
+
+    if(m.love>0){
+      m.love=Math.max(0,m.love-dt);
+    }
+
+    if(m.hostile&&d<12){
+      m.angle=Math.atan2(-dx,-dz);
+      speed=2;
+
+      if(
+        d<1.5 &&
+        m.cooldown===0 &&
+        !player.creative
+      ){
+        health=Math.max(
+          0,
+          health-(
+            inv.shield?5:
+            m.kind==='creeper'?18:
+            m.kind==='skeleton'?6:8
+          )
+        );
+        m.cooldown=1.5;
+        tell('Monster attack!');
+      }
+    }
+
+    const nx=m.g.position.x-
+      Math.sin(m.angle)*speed*dt;
+
+    const nz=m.g.position.z-
+      Math.cos(m.angle)*speed*dt;
+
+    const old=height(
+      Math.round(m.g.position.x),
+      Math.round(m.g.position.z)
+    );
+
+    const next=height(
+      Math.round(nx),Math.round(nz)
+    );
+
+    const aquatic=
+      m.kind==='fish'||m.kind==='squid';
+
+    if(aquatic){
+      if(next<=0){
+        m.g.position.x=nx;
+        m.g.position.z=nz;
+        m.g.position.y=
+          -.1+Math.sin(time*2+m.angle)*.1;
+      }else{
+        m.angle+=Math.PI;
+      }
+    }else if(
+      Math.abs(next-old)<=1 &&
+      next>0 &&
+      ![
+        'fence','wood','planks','glass','chest'
+      ].includes(
+        block(Math.round(nx),next+1,Math.round(nz))
+      ) &&
+      ![
+        'fence','wood','planks','glass'
+      ].includes(
+        block(Math.round(nx),next+2,Math.round(nz))
+      )
+    ){
+      m.g.position.set(nx,next+.5,nz);
+    }else{
+      m.angle+=Math.PI;
+    }
+
+    m.g.rotation.y=m.angle;
+
+    m.legs.forEach((leg,i)=>{
+      leg.rotation.x=
+        Math.sin(time*6+i*Math.PI)*.3;
+    });
+  }
+}
+
+// INVENTORY, CRAFTING, CHESTS, FURNACE
+let playing=false;
+let panelType=null;
+let currentChest=null;
+
+function row(root,label,description,actions){
+  const el=document.createElement('div');
+  el.className='entry';
+
+  const text=document.createElement('div');
+  text.className='info';
+
+  const strong=document.createElement('strong');
+  strong.textContent=label;
+  text.append(strong);
+
+  if(description){
+    const sm=document.createElement('small');
+    sm.textContent=description;
+    text.append(sm);
+  }
+
+  el.append(text);
+
+  for(const [title,fn,disabled] of actions){
+    const btn=document.createElement('button');
+    btn.textContent=title;
+    btn.disabled=!!disabled;
+    btn.onclick=fn;
+    el.append(btn);
+  }
+
+  root.append(el);
+}
+
+function showPanel(type,chestKey=null){
+  panelType=type;
+  currentChest=chestKey;
+
+  $('panel').hidden=false;
+  $('menu').hidden=true;
+
+  document.exitPointerLock?.();
+  drawPanel();
+}
+
+function hidePanel(){
+  panelType=null;
+  currentChest=null;
+
+  $('panel').hidden=true;
+  $('menu').hidden=true;
+
+  renderer.domElement.requestPointerLock();
+}
+
+function drawPanel(){
+  if(!panelType)return;
+
+  const root=$('panelContent');
+  root.replaceChildren();
+
+  $('panelTitle').textContent={
+    inventory:'🎒 INVENTORY',
+    craft:'🔨 CRAFTING',
+    chest:'📦 CHEST STORAGE',
+    furnace:'🔥 FURNACE'
+  }[panelType];
+
+  $('panelHelp').textContent={
+    inventory:'Select blocks for your hotbar or equip weapons.',
+    craft:'Craft recipes from gathered resources.',
+    chest:'Store and retrieve items. Chest contents are saved.',
+    furnace:'Cook 1 raw meat using 1 wood or 1 coal.'
+  }[panelType];
+
+  if(panelType==='inventory'){
+    for(const [id,n] of Object.entries(inv)){
+      if(!n)continue;
+
+      const actions=[];
+
+      if(ITEMS[id]?.block){
+        actions.push([
+          'Select',
+          ()=>{
+            if(!HOTBAR.includes(id)){
+              HOTBAR[selected]=id;
+            }else{
+              selected=HOTBAR.indexOf(id);
+            }
+            hidePanel();
+          }
+        ]);
+      }
+
+      if(ITEMS[id]?.damage){
+        actions.push([
+          'Equip',
+          ()=>{
+            equipped=id;
+            hidePanel();
+          }
+        ]);
+      }
+
+      row(
+        root,
+        `${ITEMS[id]?.icon||'•'} ${ITEMS[id]?.name||id}`,
+        `Quantity: ${n}`,
+        actions
+      );
+    }
+  }
+
+  else if(panelType==='craft'){
+    for(const [id,count,cost] of RECIPES){
+      const possible=Object.entries(cost).every(
+        ([item,n])=>(inv[item]||0)>=n
+      );
+
+      row(
+        root,
+        `${ITEMS[id].icon} ${count} ${ITEMS[id].name}`,
+        Object.entries(cost)
+          .map(([k,v])=>`${v} ${ITEMS[k].name}`)
+          .join(' + '),
+        [[
+          'Craft',
+          ()=>{
+            if(!Object.entries(cost).every(
+              ([k,n])=>(inv[k]||0)>=n
+            ))return;
+
+            for(const [k,n] of Object.entries(cost)){
+              inv[k]-=n;
+            }
+
+            addItem(id,count);
+            tell(`Crafted ${ITEMS[id].name}`);
+            drawPanel();
+          },
+          !possible
+        ]]
+      );
+    }
+  }
+
+  else if(panelType==='chest'){
+    if(!chests[currentChest]){
+      chests[currentChest]={};
+    }
+
+    const storage=chests[currentChest];
+
+    for(const [id,n] of Object.entries(inv)){
+      if(n>0){
+        row(
+          root,
+          `${ITEMS[id].name} (bag)`,
+          `${n} available`,
+          [[
+            'Store 1',
+            ()=>{
+              inv[id]--;
+              storage[id]=(storage[id]||0)+1;
+              drawPanel();
+            }
+          ]]
+        );
+      }
+    }
+
+    for(const [id,n] of Object.entries(storage)){
+      if(n>0&&ITEMS[id]){
+        row(
+          root,
+          `${ITEMS[id].name} (chest)`,
+          `${n} stored`,
+          [[
+            'Take 1',
+            ()=>{
+              storage[id]--;
+              addItem(id);
+              drawPanel();
+            }
+          ]]
+        );
+      }
+    }
+  }
+
+  else if(panelType==='furnace'){
+    row(
+      root,
+      '🍖 Cook raw meat',
+      `Raw: ${inv.raw_meat||0} · Wood: ${inv.wood||0} · Coal: ${inv.coal||0}`,
+      [[
+        'Cook',
+        ()=>{
+          if((inv.raw_meat||0)<1)return;
+
+          const fuel=(inv.coal||0)>0
+            ?'coal':'wood';
+
+          if((inv[fuel]||0)<1)return;
+
+          inv[fuel]--;
+          inv.raw_meat--;
+          addItem('cooked_meat');
+
+          tell('Cooked one meal');
+          drawPanel();
+        },
+        !(
+          inv.raw_meat>0 &&
+          (inv.wood>0||inv.coal>0)
+        )
+      ]]
+    );
+  }
+}
+
+$('closePanel').onclick=hidePanel;
+
+function eat(){
+  if(inv.cooked_meat>0){
+    inv.cooked_meat--;
+    hunger=Math.min(100,hunger+28);
+    health=Math.min(100,health+4);
+    tell('Ate cooked meat (+28 hunger)');
+  }else if(inv.raw_meat>0){
+    inv.raw_meat--;
+    hunger=Math.min(100,hunger+8);
+
+    if(Math.random()<.25){
+      hunger=Math.max(0,hunger-12);
+    }
+
+    tell('Ate raw meat (less nutrition)');
+  }else{
+    tell('No food! Hunt animals or cook meat.');
+  }
+}
+
+// SAVING AND RESETTING
+function saveGame(silent=false){
+  try{
+    localStorage.setItem(
+      STORE,
+      JSON.stringify({
+        edits:[...edits],
+        chests,
+        inv,
+        equipped,
+        pos:camera.position.toArray(),
+        stats:{health,hunger,level,xp},
+        dayClock
+      })
+    );
+
+    if(!silent)tell('World saved');
+  }catch{
+    tell('Save unavailable: browser storage is full');
+  }
+}
+
+let resettingWorld=false;
+
+window.addEventListener('beforeunload',()=>{
+  if(!resettingWorld)saveGame(true);
+});
+
+$('reset').onclick=()=>{
+  if(confirm(
+    'Erase this saved world, inventory, and chests?'
+  )){
+    resettingWorld=true;
+    localStorage.removeItem(STORE);
     location.reload();
   }
 };
 
-// GAME LOOP
+$('play').onclick=()=>{
+  $('panel').hidden=true;
+  panelType=null;
+  renderer.domElement.requestPointerLock();
+};
+
+document.addEventListener('pointerlockchange',()=>{
+  playing=
+    document.pointerLockElement===renderer.domElement;
+
+  $('menu').hidden=playing||!!panelType;
+  $('hud').hidden=!playing;
+
+  if(!playing){
+    for(const k of Object.keys(keys)){
+      keys[k]=false;
+    }
+  }
+});
+
+document.addEventListener('mousemove',e=>{
+  if(!playing)return;
+
+  player.yaw-=e.movementX*.002;
+  player.pitch=THREE.MathUtils.clamp(
+    player.pitch-e.movementY*.002,
+    -1.45,1.45
+  );
+});
+
+document.addEventListener('keydown',e=>{
+  if([
+    'Space','ArrowUp','ArrowDown',
+    'ArrowLeft','ArrowRight'
+  ].includes(e.code)){
+    e.preventDefault();
+  }
+
+  keys[e.code]=true;
+  if(!playing||e.repeat)return;
+
+  if(/^Digit[1-9]$/.test(e.code)){
+    selected=Number(e.code.slice(-1))-1;
+  }
+
+  if(e.code==='KeyE')showPanel('inventory');
+  if(e.code==='KeyC')showPanel('craft');
+  if(e.code==='KeyR')eat();
+  if(e.code==='KeyP')saveGame();
+
+  if(e.code==='KeyF'){
+    player.flying=!player.flying;
+    player.vy=0;
+    tell(player.flying?'Flying on':'Flying off');
+  }
+
+  if(e.code==='KeyG'){
+    player.creative=!player.creative;
+    tell(player.creative?'Creative mode':'Survival mode');
+  }
+
+  if(e.code==='KeyX'&&ridden){
+    ridden.ridden=false;
+    ridden=null;
+    tell('Dismounted horse');
+  }
+
+  if(e.code==='KeyV'){
+    camera.position.set(
+      49,height(49,24)+2.3,24
+    );
+    streamChunks();
+    tell('Visited village!');
+  }
+
+  if(e.code==='KeyQ'){
+    const opts=[
+      'fists',
+      ...Object.keys(inv).filter(
+        k=>ITEMS[k]?.damage&&inv[k]>0
+      )
+    ];
+
+    equipped=opts[
+      (opts.indexOf(equipped)+1)%opts.length
+    ];
+
+    tell(
+      `Equipped ${ITEMS[equipped]?.name||'Fists'}`
+    );
+  }
+});
+
+document.addEventListener('keyup',e=>{
+  keys[e.code]=false;
+});
+
+document.addEventListener(
+  'contextmenu',
+  e=>e.preventDefault()
+);
+
+// MINING, BUILDING AND CREATURE INTERACTION
+const caster=new THREE.Raycaster();
+const cross=new THREE.Vector2();
+
+function raycast(max){
+  caster.setFromCamera(cross,camera);
+  caster.far=max;
+
+  const targets=[
+    ...chunks.values(),
+    ...mobs.filter(m=>m.g.visible).map(m=>m.g)
+  ];
+
+  const hits=caster.intersectObjects(targets,true);
+  if(!hits.length)return null;
+
+  const hit=hits[0];
+  let target=hit.object;
+
+  while(
+    target.parent &&
+    !target.userData.terrain &&
+    !target.userData.mob
+  ){
+    target=target.parent;
+  }
+
+  return {hit,target};
+}
+
+function faceBlock(hit,inward){
+  const normal=hit.face.normal.clone()
+    .transformDirection(hit.object.matrixWorld);
+
+  const p=hit.point.clone().addScaledVector(
+    normal,inward?-.02:.02
+  );
+
+  return {
+    x:Math.round(p.x),
+    y:Math.round(p.y),
+    z:Math.round(p.z)
+  };
+}
+
+let attackTimer=0;
+
+document.addEventListener('mousedown',e=>{
+  if(
+    !playing ||
+    ![0,2].includes(e.button) ||
+    attackTimer>0
+  )return;
+
+  const weapon=ITEMS[equipped];
+  const ranged=e.button===0&&equipped==='bow';
+
+  const result=raycast(ranged?28:6);
+  if(!result)return;
+
+  const {hit,target}=result;
+
+  if(e.button===0){
+    if(target.userData.mob){
+      if(ranged){
+        if((inv.arrows||0)<1){
+          tell('No arrows');
+          return;
+        }
+        inv.arrows--;
+      }
+
+      const m=target.userData.mob;
+      m.hp-=weapon?.damage||3;
+      attackTimer=.35;
+
+      if(m.hp<=0)killMob(m);
+      else tell(`Hit ${m.kind}`);
+
+      return;
+    }
+
+    if(target.userData.terrain){
+      const p=faceBlock(hit,true);
+      const id=block(p.x,p.y,p.z);
+      if(!id)return;
+
+      const chestKey=`${p.x},${p.y},${p.z}`;
+
+      if(
+        id==='chest' &&
+        chests[chestKey] &&
+        Object.values(chests[chestKey])
+          .some(v=>v>0)
+      ){
+        tell('Empty chest before mining it');
+        return;
+      }
+
+      if(change(p.x,p.y,p.z,null)){
+        addItem(id);
+
+        if(id==='leaves'&&Math.random()<.2){
+          addItem('seeds');
+        }
+
+        addXP(1);
+        tell(`Mined ${ITEMS[id].name}`);
+      }
+    }
+  }
+
+  else if(target.userData.mob){
+    const m=target.userData.mob;
+
+    if(m.kind==='horse'&&(inv.saddle||0)>0){
+      if(ridden)ridden.ridden=false;
+      ridden=m;
+      m.ridden=true;
+      tell('Riding horse! X dismount');
+    }
+
+    else if((inv.lead||0)>0&&!m.hostile){
+      m.led=!m.led;
+
+      tell(
+        m.led
+          ?'Animal on lead: it follows you'
+          :'Lead released'
+      );
+    }
+
+    else if(
+      ((inv.wheat||0)>0 &&
+        ['cow','sheep','horse'].includes(m.kind)) ||
+      ((inv.carrot||0)>0&&m.kind==='pig')
+    ){
+      const food=m.kind==='pig'?'carrot':'wheat';
+
+      inv[food]--;
+      m.love=30;
+
+      tell('Animal fed; feed another nearby animal to breed');
+
+      const partner=mobs.find(other=>
+        other!==m &&
+        other.kind===m.kind &&
+        other.love>0 &&
+        other.g.position.distanceTo(
+          m.g.position
+        )<6
+      );
+
+      if(partner){
+        partner.love=0;
+        m.love=0;
+
+        createMob(
+          m.kind,
+          Math.round(m.g.position.x+1),
+          Math.round(m.g.position.z)
+        );
+
+        tell('New baby animal spawned!');
+      }
+    }
+
+    else if(m.kind==='villager'){
+      tell(
+        'Villager: Welcome! The village farm is nearby.'
+      );
+    }
+
+    else{
+      tell(
+        'Use a lead, suitable food, or a saddle.'
+      );
+    }
+  }
+
+  else if(target.userData.terrain){
+    const p=faceBlock(hit,true);
+    const id=block(p.x,p.y,p.z);
+    const k=`${p.x},${p.y},${p.z}`;
+
+    if(id==='chest'){
+      showPanel('chest',k);
+      return;
+    }
+
+    if(id==='furnace'){
+      showPanel('furnace');
+      return;
+    }
+
+    if(id==='bed'){
+      dayClock=0;
+      health=Math.min(100,health+15);
+      tell('Slept in bed: morning!');
+      return;
+    }
+
+    if(id==='crops'){
+      change(p.x,p.y,p.z,'farmland');
+      addItem('wheat',2);
+      addItem('seeds',2);
+      tell('Harvested wheat and seeds!');
+      return;
+    }
+
+    if(id==='farmland'&&inv.seeds>0){
+      inv.seeds--;
+      change(p.x,p.y,p.z,'crops');
+      tell('Planted crops');
+      return;
+    }
+
+    const q=faceBlock(hit,false);
+    const item=HOTBAR[selected];
+
+    if(!player.creative&&(inv[item]||0)<=0){
+      tell(`No ${ITEMS[item].name} left`);
+      return;
+    }
+
+    if(block(q.x,q.y,q.z))return;
+
+    const overlap=
+      Math.abs(q.x-camera.position.x)<.8 &&
+      Math.abs(q.z-camera.position.z)<.8 &&
+      q.y+.5>camera.position.y-1.55 &&
+      q.y-.5<camera.position.y+.1;
+
+    if(overlap)return;
+
+    if(change(q.x,q.y,q.z,item)){
+      if(!player.creative)inv[item]--;
+      tell(`Placed ${ITEMS[item].name}`);
+    }
+  }
+});
+
+// HOTBAR
+const hotbar=$('hotbar');
+
+for(let i=0;i<9;i++){
+  const el=document.createElement('div');
+  el.className='slot';
+
+  const digit=document.createElement('small');
+  digit.textContent=i+1;
+
+  const icon=document.createElement('span');
+  icon.textContent=ITEMS[HOTBAR[i]].icon;
+
+  el.append(icon,digit);
+  hotbar.append(el);
+}
+
+// MAIN GAME LOOP
+streamChunks();
+
 const clock=new THREE.Clock();
-const movement=new THREE.Vector3();
+let foodTick=0;
+let saveTick=0;
 
 function animate(){
   requestAnimationFrame(animate);
-  const dt=Math.min(clock.getDelta(),.033);
+
+  const dt=Math.min(.04,clock.getDelta());
   const t=clock.elapsedTime;
 
-  if(playing)gameTime+=dt;
-  const night=(gameTime%240)>132&&
-              (gameTime%240)<225;
-  sunlight.intensity=night?.16:2.1;
-  scene.background.setHex(night?0x121d3e:0x91caff);
-  scene.fog.color.copy(scene.background);
-
-  for(const cloud of clouds){
-    cloud.position.x+=dt*.4;
-    if(cloud.position.x>55)cloud.position.x=-55;
-  }
-  water.position.y=-2.25+Math.sin(t)*.025;
-
   if(playing){
-    if(keys.ArrowLeft)player.yaw+=2.3*dt;
-    if(keys.ArrowRight)player.yaw-=2.3*dt;
+    dayClock+=dt;
+
+    const night=
+      (dayClock%240)>135 &&
+      (dayClock%240)<215;
+
+    ambient.intensity=night?.55:1.85;
+    sun.intensity=night?.15:1.6;
+
+    scene.background.setHex(
+      night?0x122344:0x91cfff
+    );
+
+    scene.fog.color.copy(scene.background);
+
+    if(keys.ArrowLeft)player.yaw+=2.4*dt;
+    if(keys.ArrowRight)player.yaw-=2.4*dt;
+
     camera.rotation.y=player.yaw;
     camera.rotation.x=player.pitch;
 
-    const forward=new THREE.Vector3(
-      -Math.sin(player.yaw),0,-Math.cos(player.yaw)
+    const f=new THREE.Vector3(
+      -Math.sin(player.yaw),
+      0,
+      -Math.cos(player.yaw)
     );
-    const right=new THREE.Vector3(
-      Math.cos(player.yaw),0,-Math.sin(player.yaw)
-    );
-    movement.set(0,0,0);
-    if(keys.KeyW||keys.ArrowUp)movement.add(forward);
-    if(keys.KeyS||keys.ArrowDown)movement.sub(forward);
-    if(keys.KeyA)movement.sub(right);
-    if(keys.KeyD)movement.add(right);
 
-    const speed=keys.ShiftLeft?7.5:4.5;
-    if(movement.lengthSq()>0){
+    const r=new THREE.Vector3(
+      Math.cos(player.yaw),
+      0,
+      -Math.sin(player.yaw)
+    );
+
+    movement.set(0,0,0);
+
+    if(keys.KeyW||keys.ArrowUp)movement.add(f);
+    if(keys.KeyS||keys.ArrowDown)movement.sub(f);
+    if(keys.KeyD)movement.add(r);
+    if(keys.KeyA)movement.sub(r);
+
+    const speed=ridden
+      ?9.5
+      :keys.ShiftLeft?7.4:4.4;
+
+    if(movement.lengthSq()){
       movement.normalize().multiplyScalar(speed*dt);
-      moveAxis("x",movement.x);
-      moveAxis("z",movement.z);
+      moveAxis('x',movement.x);
+      moveAxis('z',movement.z);
     }
 
     if(player.flying||player.creative){
-      if(keys.Space)moveAxis("y",speed*dt);
-      if(keys.ControlLeft)moveAxis("y",-speed*dt);
+      if(keys.Space)moveAxis('y',speed*dt);
+
+      if(keys.ControlLeft){
+        moveAxis('y',-speed*dt);
+      }
+
       player.vy=0;
     }else{
       if(keys.Space&&player.grounded){
         player.vy=7.5;
         player.grounded=false;
       }
-      player.vy=Math.max(-18,player.vy-21*dt);
-      const moved=moveAxis("y",player.vy*dt);
+
+      player.vy=Math.max(
+        -22,player.vy-21*dt
+      );
+
+      const moved=moveAxis(
+        'y',player.vy*dt
+      );
+
       if(!moved){
         player.grounded=player.vy<=0;
         player.vy=0;
       }else{
-        const probe=camera.position.clone();
-        probe.y-=.07;
-        player.grounded=collides(probe);
+        const test=camera.position.clone();
+        test.y-=.07;
+        player.grounded=collision(test);
       }
     }
 
-    camera.position.x=THREE.MathUtils.clamp(
-      camera.position.x,-SIZE+1,SIZE-1
-    );
-    camera.position.z=THREE.MathUtils.clamp(
-      camera.position.z,-SIZE+1,SIZE-1
-    );
-
-    if(camera.position.y < -12||player.health<=0){
-      camera.position.set(0,height(0,5)+2.12,5);
-      player.health=100;
-      player.vy=0;
-      notify("Respawned");
-    }
-
-    updateMobs(dt,t,night);
-    attackCooldown=Math.max(0,attackCooldown-dt);
-
-    foodTimer+=dt;
-    if(foodTimer>=5){
-      foodTimer=0;
-      if(!player.creative){
-        player.hunger=Math.max(0,player.hunger-1);
-        if(player.hunger===0)
-          player.health=Math.max(0,player.health-2);
-      }
-    }
-
-    saveTimer+=dt;
-    if(saveTimer>=60){
-      saveTimer=0;
-      saveGame();
-    }
-
-    $("coords").textContent=
-      `XYZ ${camera.position.x.toFixed(0)} `+
-      `${camera.position.y.toFixed(0)} `+
-      `${camera.position.z.toFixed(0)}`;
-    $("time").textContent=night?"🌙 NIGHT":"☀ DAY";
-    $("health").textContent=Math.ceil(player.health);
-    $("hunger").textContent=Math.ceil(player.hunger);
-    $("level").textContent=player.level;
-    $("hpFill").style.width=player.health+"%";
-    $("foodFill").style.width=player.hunger+"%";
-    $("xpFill").style.width=
-      Math.min(100,player.xp/(player.level*20)*100)+"%";
-    $("weapon").textContent=weapons[equipped].name;
-    $("mode").textContent=player.creative?
-      "CREATIVE":"SURVIVAL";
-    $("selected").textContent=
-      `${BLOCKS[selected].name} (${inventory[selected]||0})`;
-
-    document.querySelectorAll(".slot").forEach(el=>{
-      el.classList.toggle(
-        "active",Number(el.dataset.id)===selected
+    // Respawn only for death or falling below the world.
+    if(camera.position.y<BOTTOM-8||health<=0){
+      camera.position.set(
+        0,height(0,4)+2.3,4
       );
+      player.vy=0;
+      health=100;
+      hunger=Math.max(50,hunger);
+      tell('Respawned at spawn point');
+    }
+
+    const feet=block(
+      Math.round(camera.position.x),
+      Math.round(camera.position.y-1.45),
+      Math.round(camera.position.z)
+    );
+
+    if(feet==='lava'&&!player.creative){
+      damageTimer+=dt;
+
+      if(damageTimer>1){
+        damageTimer=0;
+        health=Math.max(0,health-12);
+        tell('Lava burns!');
+      }
+    }
+
+    const underwater=
+      height(
+        Math.round(camera.position.x),
+        Math.round(camera.position.z)
+      )<=0 &&
+      camera.position.y<.54;
+
+    if(underwater&&!player.creative){
+      damageTimer+=dt;
+
+      if(damageTimer>7){
+        damageTimer=0;
+        health=Math.max(0,health-4);
+        tell('Swim up for air!');
+      }
+    }
+
+    if(ridden){
+      ridden.g.position.set(
+        camera.position.x,
+        camera.position.y-1.2,
+        camera.position.z
+      );
+    }
+
+    streamChunks();
+    updateMobs(dt,t,night);
+
+    attackTimer=Math.max(0,attackTimer-dt);
+    damageTimer=Math.max(0,damageTimer-dt);
+
+    foodTick+=dt;
+
+    if(foodTick>6){
+      foodTick=0;
+
+      if(!player.creative){
+        hunger=Math.max(0,hunger-1);
+
+        if(hunger===0){
+          health=Math.max(0,health-2);
+        }
+      }
+    }
+
+    saveTick+=dt;
+
+    if(saveTick>45){
+      saveTick=0;
+      saveGame(true);
+    }
+
+    $('coords').textContent=
+      `XYZ ${Math.floor(camera.position.x)} `+
+      `${Math.floor(camera.position.y)} `+
+      `${Math.floor(camera.position.z)}`;
+
+    $('day').textContent=
+      night?'🌙 Night':'☀ Day';
+
+    $('health').textContent=Math.ceil(health);
+    $('hunger').textContent=Math.ceil(hunger);
+    $('level').textContent=level;
+
+    $('weapon').textContent=
+      'Weapon: '+
+      (ITEMS[equipped]?.name||'Fists')+
+      (player.creative?' · Creative':'');
+
+    const id=HOTBAR[selected];
+
+    $('selected').textContent=
+      `${ITEMS[id].name} (${inv[id]||0})`;
+
+    [...hotbar.children].forEach((e,i)=>{
+      e.classList.toggle(
+        'active',i===selected
+      );
+
+      e.querySelector('span').textContent=
+        ITEMS[HOTBAR[i]].icon;
     });
   }
 
-  if(noticeTime>0){
-    noticeTime-=dt;
-    if(noticeTime<=0)$("notice").textContent="";
+  if(noticeTimer>0){
+    noticeTimer-=dt;
+    if(noticeTimer<=0){
+      $('notice').textContent='';
+    }
   }
 
   renderer.render(scene,camera);
 }
 
 animate();
-window.addEventListener("resize",()=>{
+
+window.addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
