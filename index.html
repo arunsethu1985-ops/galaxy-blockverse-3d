@@ -1,65 +1,159 @@
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GALAXY BLOCKVERSE</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+  <title>GALAXY BLOCKVERSE — Infinite Survival</title>
+
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-<div id="menu">
-  <h1>🌌 GALAXY BLOCKVERSE</h1>
-  <h2>3D SINGLE-PLAYER ADVENTURE</h2>
-  <p>Mine • Craft • Build • Fight • Explore</p>
-  <button id="play">▶ PLAY GAME</button>
-  <button id="reset">RESET WORLD</button>
-  <p class="help">
-    WASD / ↑↓ Move · ←→ Turn · Mouse Look<br>
-    Left-click Mine/Attack · Right-click Place/Open<br>
-    Space Jump · Shift Sprint · F Fly · G Creative<br>
-    E Inventory · C Crafting · Q Switch Weapon<br>
-    R Eat · P Save · 1–9 Hotbar · Esc Pause
-  </p>
-</div>
 
-<div id="hud" hidden>
-  <header>
-    <strong>🌌 BLOCKVERSE</strong>
-    <span id="coords">XYZ</span>
-    <span id="time">☀ DAY</span>
-  </header>
-  <aside>
-    <div>❤️ Health <span id="health">100</span></div>
-    <div class="meter"><div id="hpFill"></div></div>
-    <div>🍗 Hunger <span id="hunger">100</span></div>
-    <div class="meter"><div id="foodFill"></div></div>
-    <div>⭐ Level <span id="level">1</span></div>
-    <div class="meter"><div id="xpFill"></div></div>
-    <div id="weapon">Fists</div>
-    <div id="mode">SURVIVAL</div>
-  </aside>
-  <div id="crosshair">+</div>
-  <div id="notice"></div>
-  <footer>
-    <div id="hotbar"></div>
-    <div id="selected"></div>
-    <small>E Inventory · C Craft · Q Weapon · R Eat · P Save</small>
-  </footer>
-</div>
+  <!-- MAIN MENU -->
+  <div id="menu" class="overlay">
 
-<section id="inventoryPanel" class="panel" hidden>
-  <h2>🎒 INVENTORY</h2>
-  <div id="items"></div>
-  <button class="close">CLOSE</button>
-</section>
+    <h1>🌌 GALAXY BLOCKVERSE</h1>
 
-<section id="craftPanel" class="panel" hidden>
-  <h2>⚒️ CRAFTING</h2>
-  <div id="recipes"></div>
-  <button class="close">CLOSE</button>
-</section>
+    <h2>
+      OCEANS • VILLAGES • DEEP MINES • SINGLE PLAYER
+    </h2>
 
-<script type="module" src="script.js"></script>
+    <button id="play">
+      ▶ PLAY / RESUME
+    </button>
+
+    <button id="reset" class="danger">
+      RESET SAVED WORLD
+    </button>
+
+    <p>
+      WASD or ↑↓ Move • ←→ Turn • Mouse Look
+      • Space Jump • Shift Sprint
+      <br>
+
+      Left Click Mine/Attack •
+      Right Click Place / Open Chest or Furnace
+      <br>
+
+      1–9 Hotbar • E Inventory • C Craft
+      • Q Weapon • R Eat
+      <br>
+
+      F Fly • G Creative • V Visit Village
+      <br>
+
+      Right Click Animal: Lead / Feed / Ride
+      • X Dismount
+      <br>
+
+      P Save • Esc Pause
+    </p>
+
+  </div>
+
+
+  <!-- GAME HUD -->
+  <div id="hud" hidden>
+
+    <!-- TOP INFORMATION -->
+    <div id="top">
+
+      <strong>
+        🌌 BLOCKVERSE
+      </strong>
+
+      <span id="coords">
+        XYZ
+      </span>
+
+      <span id="day">
+        ☀ Day
+      </span>
+
+    </div>
+
+
+    <!-- PLAYER STATISTICS -->
+    <div id="stats">
+
+      <div>
+        ❤️ Health:
+        <span id="health">100</span>
+        / 100
+      </div>
+
+      <div>
+        🍗 Hunger:
+        <span id="hunger">100</span>
+        / 100
+      </div>
+
+      <div>
+        ⭐ Level:
+        <span id="level">1</span>
+      </div>
+
+      <div id="weapon">
+        Weapon: Fists
+      </div>
+
+    </div>
+
+
+    <!-- AIMING CROSSHAIR -->
+    <div id="crosshair">
+      +
+    </div>
+
+
+    <!-- NOTIFICATION MESSAGE -->
+    <div id="notice"></div>
+
+
+    <!-- BOTTOM HOTBAR -->
+    <div id="bottom">
+
+      <div id="hotbar"></div>
+
+      <strong id="selected">
+        Grass
+      </strong>
+
+      <small>
+        E Inventory · C Craft · Q Weapon
+        · R Eat · P Save
+      </small>
+
+    </div>
+
+  </div>
+
+
+  <!-- INVENTORY / CRAFTING / CHEST / FURNACE -->
+  <div id="panel" hidden>
+
+    <h2 id="panelTitle">
+      Inventory
+    </h2>
+
+    <p id="panelHelp"></p>
+
+    <div id="panelContent"></div>
+
+    <button id="closePanel">
+      CLOSE & RETURN
+    </button>
+
+  </div>
+
+
+  <!-- GAME JAVASCRIPT -->
+  <script type="module" src="script.js"></script>
+
 </body>
 </html>
