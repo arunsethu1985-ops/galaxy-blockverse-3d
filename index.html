@@ -1,69 +1,59 @@
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport"
         content="width=device-width,initial-scale=1">
-  <title>GALAXY BLOCKVERSE - Pixel Survival</title>
+  <title>GALAXY BLOCKVERSE — FAST</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <div id="menu" class="overlay">
+  <div id="menu" class="screen">
     <h1>🌌 GALAXY BLOCKVERSE</h1>
-    <h2>PIXEL SURVIVAL</h2>
-    <p>
-      Explore textured lands, oceans, caves and villages.
-      Mine, build, craft, farm and survive.
-    </p>
+    <h2>FAST PIXEL SURVIVAL</h2>
+    <p>Explore, mine instantly, build, craft, cook and store items.</p>
     <button id="play">▶ PLAY / RESUME</button>
-    <button id="reset" class="danger">RESET WORLD</button>
-    <div class="instructions">
-      WASD Move · Mouse Look · Space Jump · Shift Sprint
+    <button id="reset">RESET WORLD</button>
+    <p class="hint">
+      WASD Move · Shift Sprint · Mouse Look · Space Jump
       <br>
       Left Click Mine/Attack · Right Click Place/Interact
       <br>
-      1–9 Select Block · E Inventory · C Crafting
+      E Inventory · C Craft · R Eat · 1–9 Blocks · Q Weapon
       <br>
-      Q Weapon · R Eat · F Fly · G Creative
-      <br>
-      V Village · X Dismount · P Save · Esc Pause
-    </div>
+      F Fly · G Creative · P Save · Esc Pause
+    </p>
   </div>
 
   <div id="hud" hidden>
     <div id="top">
-      <strong>🌌 BLOCKVERSE</strong>
-      <span id="coords">XYZ 0 0 0</span>
-      <span id="day">☀ Day</span>
+      🌌 BLOCKVERSE
+      <span id="coords"></span>
+      <span id="day"></span>
     </div>
-
     <div id="stats">
       <span>❤️ <b id="health">100</b></span>
       <span>🍗 <b id="hunger">100</b></span>
       <span>⭐ <b id="level">1</b></span>
-      <span id="weapon">Weapon: Fists</span>
+      <span id="weapon">Fists</span>
     </div>
-
     <div id="crosshair">+</div>
     <div id="notice"></div>
-
     <div id="bottom">
       <div id="hotbar"></div>
-      <div id="selected">Grass</div>
-      <small>E Inventory · C Craft · P Save</small>
+      <b id="selected"></b>
     </div>
   </div>
 
-  <div id="panel" hidden>
-    <div class="panelHeader">
-      <h2 id="panelTitle">Inventory</h2>
-      <button id="closePanel">✕ CLOSE & RETURN</button>
-    </div>
+  <section id="panel" hidden>
+    <header>
+      <h2 id="panelTitle"></h2>
+      <button id="closePanel">CLOSE & RESUME</button>
+    </header>
     <p id="panelHelp"></p>
     <div id="panelContent"></div>
-  </div>
+  </section>
 
   <script type="module" src="script.js"></script>
 </body>
