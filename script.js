@@ -1,374 +1,431 @@
 
-import * as THREE from 'https://esm.sh/three@0.180.0';
+import * as THREE from "https://esm.sh/three@0.180.0";
 
-// GALAXY BLOCKVERSE FAST
-// Streamlined original voxel survival prototype.
+// GALAXY BLOCKVERSE
+// Original single-player voxel game.
+// This is NOT the complete Minecraft game.
 
 const $ = id => document.getElementById(id);
-const KEY = 'galaxy-blockverse-fast-v1';
-const CS = 12, VIEW = 1, FLOOR = -48;
+
+const SAVE = "galaxy-blockverse-water-village-v1";
+const CHUNK = 12;
+const VIEW = 1;
+const LOWEST_Y = -48;
+const WATER_LEVEL = 0;
+
+// ---------------------------------------
+// THREE.JS SETUP
+// ---------------------------------------
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x89c8ef);
-scene.fog = new THREE.Fog(0x89c8ef, 24, 68);
+scene.background = new THREE.Color(0x91cfff);
+scene.fog = new THREE.Fog(0x91cfff, 22, 70);
 
 const camera = new THREE.PerspectiveCamera(
-  75, innerWidth / innerHeight, .05, 110
+  75,
+  innerWidth / innerHeight,
+  0.05,
+  110
 );
-camera.rotation.order = 'YXZ';
+camera.rotation.order = "YXZ";
 
 const renderer = new THREE.WebGLRenderer({
   antialias: false,
-  powerPreference: 'high-performance'
+  powerPreference: "high-performance"
 });
 
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
+renderer.setPixelRatio(
+  Math.min(devicePixelRatio, 1.25)
+);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(
-  0xe3efff, 0x52673e, 2
-));
+scene.add(
+  new THREE.HemisphereLight(
+    0xdfefff,
+    0x657344,
+    2
+  )
+);
 
-const sun = new THREE.DirectionalLight(0xffedc5, 1.35);
-sun.position.set(30, 50, 20);
-scene.add(sun);
+const sunlight = new THREE.DirectionalLight(
+  0xffeed0,
+  1.3
+);
+sunlight.position.set(30, 50, 25);
+scene.add(sunlight);
 
+// ---------------------------------------
 // ITEMS
+// ---------------------------------------
+
 const ITEMS = {
-  grass: ['Grass', '🟩'],
-  dirt: ['Dirt', '🟫'],
-  stone: ['Stone', '🪨'],
-  wood: ['Wood', '🪵'],
-  leaves: ['Leaves', '🍃'],
-  sand: ['Sand', '🏖️'],
-  planks: ['Planks', '🪵'],
-  fence: ['Fence', '🚧'],
-  glass: ['Glass', '🪟'],
-  chest: ['Chest', '📦'],
-  furnace: ['Furnace', '🔥'],
-  coal: ['Coal', '⚫'],
-  iron: ['Iron', '🔩'],
-  gold: ['Gold', '🟨'],
-  diamond: ['Diamond', '💎'],
-  copper: ['Copper', '🟠'],
-  lava: ['Lava', '🌋'],
-  bedrock: ['Bedrock', '⬛'],
-  farmland: ['Farmland', '🟤'],
-  crops: ['Crops', '🌾'],
-  wheat: ['Wheat', '🌾'],
-  seeds: ['Seeds', '🌱'],
-  raw_meat: ['Raw Meat', '🥩'],
-  cooked_meat: ['Cooked Meat', '🍖'],
-  wood_sword: ['Wood Sword', '🗡️'],
-  stone_sword: ['Stone Sword', '⚔️'],
-  iron_sword: ['Iron Sword', '⚔️'],
-  diamond_sword: ['Diamond Sword', '💎'],
-  arrows: ['Arrows', '🏹'],
-  bow: ['Bow', '🏹']
+  grass: ["Grass Block", "🟩"],
+  dirt: ["Dirt", "🟫"],
+  stone: ["Stone", "🪨"],
+  sand: ["Sand", "🏖️"],
+  wood: ["Wood", "🪵"],
+  leaves: ["Leaves", "🍃"],
+  planks: ["Planks", "🪵"],
+  cobble: ["Cobblestone", "🪨"],
+  glass: ["Glass", "🪟"],
+  fence: ["Fence", "🚧"],
+  farmland: ["Farmland", "🟤"],
+  wheat_crop: ["Wheat Crops", "🌾"],
+  chest: ["Chest", "📦"],
+  furnace: ["Furnace", "🔥"],
+  bed: ["Bed", "🛏️"],
+  coal: ["Coal", "⚫"],
+  iron: ["Iron", "🔩"],
+  gold: ["Gold", "🟨"],
+  diamond: ["Diamond", "💎"],
+  copper: ["Copper", "🟠"],
+  lava: ["Lava", "🌋"],
+  bedrock: ["Bedrock", "⬛"],
+  water: ["Water", "💧"],
+  bucket: ["Empty Bucket", "🪣"],
+  water_bucket: ["Water Bucket", "🪣💧"],
+  seeds: ["Wheat Seeds", "🌱"],
+  wheat: ["Wheat", "🌾"],
+  carrot: ["Carrot", "🥕"],
+  potato: ["Potato", "🥔"],
+  raw_meat: ["Raw Meat", "🥩"],
+  cooked_meat: ["Cooked Meat", "🍖"],
+  emerald: ["Emerald", "💚"],
+  stick: ["Stick", "🪵"],
+  wood_sword: ["Wood Sword", "🗡️"],
+  stone_sword: ["Stone Sword", "⚔️"],
+  iron_sword: ["Iron Sword", "⚔️"],
+  diamond_sword: ["Diamond Sword", "💎"]
 };
 
-const BLOCKS = new Set([
-  'grass', 'dirt', 'stone', 'wood', 'leaves',
-  'sand', 'planks', 'fence', 'glass', 'chest',
-  'furnace', 'coal', 'iron', 'gold', 'diamond',
-  'copper', 'lava', 'bedrock', 'farmland', 'crops'
+const PLACEABLE = new Set([
+  "grass", "dirt", "stone", "sand",
+  "wood", "leaves", "planks", "cobble",
+  "glass", "fence", "farmland",
+  "wheat_crop", "chest", "furnace", "bed"
 ]);
 
-const DAMAGES = {
-  wood_sword: 5,
-  stone_sword: 7,
-  iron_sword: 9,
-  diamond_sword: 12,
-  bow: 7
-};
-
 const RECIPES = [
-  ['planks', 4, {wood: 1}],
-  ['fence', 4, {planks: 4}],
-  ['chest', 1, {planks: 8}],
-  ['furnace', 1, {stone: 8}],
-  ['glass', 4, {sand: 4, coal: 1}],
-  ['wood_sword', 1, {planks: 2, wood: 1}],
-  ['stone_sword', 1, {stone: 2, wood: 1}],
-  ['iron_sword', 1, {iron: 2, wood: 1}],
-  ['diamond_sword', 1, {diamond: 2, wood: 1}],
-  ['bow', 1, {wood: 3, leaves: 2}],
-  ['arrows', 8, {wood: 1, stone: 1}],
-  ['farmland', 2, {dirt: 2}],
-  ['crops', 2, {seeds: 2}]
+  ["planks", 4, {wood: 1}],
+  ["stick", 4, {planks: 2}],
+  ["cobble", 1, {stone: 1}],
+  ["fence", 3, {planks: 4, stick: 2}],
+  ["chest", 1, {planks: 8}],
+  ["furnace", 1, {cobble: 8}],
+  ["bucket", 1, {iron: 3}],
+  ["glass", 4, {sand: 4, coal: 1}],
+  ["wood_sword", 1, {planks: 2, stick: 1}],
+  ["stone_sword", 1, {stone: 2, stick: 1}],
+  ["iron_sword", 1, {iron: 2, stick: 1}],
+  ["diamond_sword", 1, {diamond: 2, stick: 1}],
+  ["farmland", 4, {dirt: 4}],
+  ["wheat_crop", 4, {seeds: 4}],
+  ["bed", 1, {planks: 3, leaves: 3}]
 ];
 
-// SAVE AND INVENTORY
+// ---------------------------------------
+// SAVE DATA
+// ---------------------------------------
+
 let saved = {};
+
 try {
-  saved = JSON.parse(localStorage.getItem(KEY) || '{}');
-} catch {}
+  saved = JSON.parse(
+    localStorage.getItem(SAVE) || "{}"
+  );
+} catch {
+  saved = {};
+}
 
 const edits = new Map(
   Array.isArray(saved.edits) ? saved.edits : []
 );
 
-const chests = saved.chests || {};
+const chestData = saved.chests || {};
 
 const inventory = {
-  grass: 30,
-  dirt: 20,
-  stone: 15,
-  wood: 15,
-  leaves: 10,
+  grass: 20,
+  dirt: 16,
+  stone: 10,
   sand: 10,
-  planks: 10,
-  fence: 10,
+  wood: 10,
+  leaves: 10,
+  planks: 8,
+  cobble: 8,
   glass: 5,
-  seeds: 6,
-  cooked_meat: 4,
-  raw_meat: 0
+  fence: 6,
+  bucket: 1,
+  water_bucket: 0,
+  seeds: 8,
+  cooked_meat: 5,
+  raw_meat: 0,
+  stick: 4
 };
 
-for (const [k, v] of Object.entries(saved.inventory || {})) {
-  if (ITEMS[k] && Number.isInteger(v) && v >= 0) {
-    inventory[k] = v;
+for (const [id, quantity] of Object.entries(
+  saved.inventory || {}
+)) {
+  if (
+    ITEMS[id] &&
+    Number.isInteger(quantity) &&
+    quantity >= 0
+  ) {
+    inventory[id] = quantity;
   }
 }
 
-const hotItems = [
-  'grass', 'dirt', 'stone', 'wood', 'leaves',
-  'sand', 'planks', 'fence', 'glass'
+const hotbar = [
+  "grass",
+  "dirt",
+  "stone",
+  "wood",
+  "planks",
+  "glass",
+  "fence",
+  "bucket",
+  "water_bucket"
 ];
 
 let selected = 0;
-let equipped = saved.equipped || 'fists';
 let health = saved.health ?? 100;
 let hunger = saved.hunger ?? 100;
 let level = saved.level ?? 1;
-let xp = saved.xp ?? 0;
-let worldTime = saved.worldTime ?? 0;
+let creative = false;
+let flying = false;
 
-// FAST TERRAIN
-const hash = (x, z, s = 0) => {
-  const v = Math.sin(
-    x * 127.1 + z * 311.7 + s * 74.7
-  ) * 43758.5453;
-  return v - Math.floor(v);
-};
+const itemKey = (x, y, z) => `${x},${y},${z}`;
 
-function height(x, z) {
-  const n =
-    Math.sin(x * .018) +
-    Math.cos(z * .016) +
-    Math.sin((x - z) * .011);
-
-  let h = Math.floor(
-    n * 5 +
-    Math.sin(x * .12) * 2 +
-    Math.cos(z * .1) * 2
-  );
-
-  if (Math.hypot(x, z - 3) < 15) {
-    h = Math.max(h, 3);
-  }
-  return h;
+function addItem(id, count = 1) {
+  inventory[id] = (inventory[id] || 0) + count;
 }
 
-function treeAt(x, z) {
-  return x % 8 === 0 &&
-    z % 8 === 0 &&
-    height(x, z) > 2 &&
-    hash(x / 8, z / 8) > .55 &&
-    Math.hypot(x, z - 3) > 8;
-}
-
-function natural(x, y, z) {
-  if (y <= FLOOR) return 'bedrock';
-
-  const h = height(x, z);
-
-  if (y > h) {
-    for (
-      let tx = Math.floor((x - 2) / 8) * 8;
-      tx <= x + 2;
-      tx += 8
-    ) {
-      for (
-        let tz = Math.floor((z - 2) / 8) * 8;
-        tz <= z + 2;
-        tz += 8
-      ) {
-        if (!treeAt(tx, tz)) continue;
-
-        const th = height(tx, tz);
-        const dx = Math.abs(x - tx);
-        const dz = Math.abs(z - tz);
-
-        if (!dx && !dz && y <= th + 4) {
-          return 'wood';
-        }
-
-        if (
-          dx <= 2 && dz <= 2 &&
-          dx + dz <= 3 &&
-          y >= th + 3 &&
-          y <= th + 5
-        ) return 'leaves';
-      }
-    }
-    return null;
+function removeItem(id, count = 1) {
+  if ((inventory[id] || 0) < count) {
+    return false;
   }
 
-  if (y === h) return h <= 0 ? 'sand' : 'grass';
-  if (y >= h - 3) return 'dirt';
-
-  const c =
-    Math.sin(x * .17 + y * .14) +
-    Math.cos(z * .13 - y * .15) +
-    Math.sin((x + z + y) * .1);
-
-  if (y < -8 && c > 2.43) {
-    return y < -32 && hash(x + y, z) > .8
-      ? 'lava' : null;
-  }
-
-  const ore = hash(x * 7 + y * 13, z * 11 + y * 17);
-
-  if (y < -30 && ore > .989) return 'diamond';
-  if (y < -21 && ore > .98) return 'gold';
-  if (y < -12 && ore > .974) return 'iron';
-  if (y < -6 && ore > .972) return 'copper';
-  if (y < -5 && ore > .951) return 'coal';
-
-  return 'stone';
+  inventory[id] -= count;
+  return true;
 }
 
-const key = (x, y, z) => `${x},${y},${z}`;
+// ---------------------------------------
+// ORIGINAL PIXEL ART TEXTURES
+// ---------------------------------------
 
-function block(x, y, z) {
-  const k = key(x, y, z);
-  return edits.has(k) ? edits.get(k) : natural(x, y, z);
-}
-
-// PIXELATED TEXTURE ATLAS
-const tileNames = [
-  'grassTop', 'grassSide', 'dirt', 'stone',
-  'wood', 'woodTop', 'leaves', 'sand',
-  'planks', 'fence', 'glass', 'chest',
-  'furnace', 'coal', 'iron', 'gold',
-  'diamond', 'copper', 'lava', 'bedrock',
-  'farmland', 'crops'
+const TEXTURE_NAMES = [
+  "grass_top",
+  "grass_side",
+  "dirt",
+  "stone",
+  "sand",
+  "wood_side",
+  "wood_top",
+  "leaves",
+  "planks",
+  "cobble",
+  "glass",
+  "fence",
+  "farmland",
+  "wheat_crop",
+  "chest",
+  "furnace",
+  "bed",
+  "coal",
+  "iron",
+  "gold",
+  "diamond",
+  "copper",
+  "lava",
+  "bedrock",
+  "water"
 ];
 
-const colors = {
-  grassTop: 0x5ab33d,
-  grassSide: 0x855b39,
-  dirt: 0x805638,
-  stone: 0x8a8d91,
-  wood: 0x88603d,
-  woodTop: 0xb58d59,
-  leaves: 0x348c41,
-  sand: 0xe8d193,
-  planks: 0xc39258,
-  fence: 0x9e7048,
-  glass: 0x95d9e9,
-  chest: 0x9b703e,
-  furnace: 0x66696b,
-  coal: 0x888a8e,
+const BASE = {
+  grass_top: 0x65b545,
+  grass_side: 0x8b6140,
+  dirt: 0x855938,
+  stone: 0x8a8e94,
+  sand: 0xe2d295,
+  wood_side: 0x896039,
+  wood_top: 0xb79769,
+  leaves: 0x348b4c,
+  planks: 0xc6975c,
+  cobble: 0x74777c,
+  glass: 0x93dbe8,
+  fence: 0x9e7046,
+  farmland: 0x65452f,
+  wheat_crop: 0x91b43d,
+  chest: 0xa27842,
+  furnace: 0x5c6269,
+  bed: 0xbb414e,
+  coal: 0x888b8f,
   iron: 0x898b8d,
   gold: 0x898b8d,
-  diamond: 0x898b8d,
-  copper: 0x898b8d,
-  lava: 0xeb671a,
-  bedrock: 0x35363c,
-  farmland: 0x6d4930,
-  crops: 0x7ab740
+  diamond: 0x888c8d,
+  copper: 0x8b898a,
+  lava: 0xeb681c,
+  bedrock: 0x30343a,
+  water: 0x368dca
 };
 
-const atlas = document.createElement('canvas');
-atlas.width = 128;
-atlas.height = Math.ceil(tileNames.length / 8) * 16;
-const pen = atlas.getContext('2d');
+function random2(x, z, seed = 0) {
+  const n = Math.sin(
+    x * 127.1 +
+    z * 311.7 +
+    seed * 67.3
+  ) * 43758.5453123;
 
-for (let t = 0; t < tileNames.length; t++) {
-  const name = tileNames[t];
-  const im = pen.createImageData(16, 16);
+  return n - Math.floor(n);
+}
+
+const atlas = document.createElement("canvas");
+atlas.width = 128;
+atlas.height =
+  Math.ceil(TEXTURE_NAMES.length / 8) * 16;
+
+const ctx = atlas.getContext("2d");
+
+for (let t = 0; t < TEXTURE_NAMES.length; t++) {
+  const name = TEXTURE_NAMES[t];
+  const image = ctx.createImageData(16, 16);
 
   for (let y = 0; y < 16; y++) {
     for (let x = 0; x < 16; x++) {
-      let base = colors[name];
-      let n = (hash(x, y, t) - .5) * 55;
+      let base = BASE[name];
 
-      if (name === 'grassSide' && y < 3) {
-        base = 0x60b83b;
+      let variation =
+        (random2(x, y, t) - .5) * 50;
+
+      if (name === "grass_side" && y < 3) {
+        base = 0x61b345;
       }
 
-      if (name === 'wood' && x % 4 === 0) n -= 32;
-
       if (
-        name === 'woodTop' &&
-        Math.floor(Math.max(
-          Math.abs(x - 7.5), Math.abs(y - 7.5)
-        )) % 3 === 0
-      ) n -= 35;
-
-      if (name === 'planks' && y % 5 === 0) n -= 38;
-      if (name === 'farmland' && x % 4 === 0) n -= 36;
-
-      if (
-        name === 'glass' &&
-        (x === 0 || x === 15 || y === 0 || y === 15)
-      ) n += 65;
-
-      if (
-        name === 'chest' &&
-        (y === 3 || y === 12 || x === 1 || x === 14)
-      ) n -= 55;
-
-      if (
-        name === 'furnace' &&
-        x > 3 && x < 12 && y > 5 && y < 13
-      ) n -= 80;
-
-      if (name === 'crops' && x % 4 === 2) n += 30;
-
-      if (name === 'lava') {
-        n += hash(
-          Math.floor(x / 3),
-          Math.floor(y / 3), t
-        ) > .5 ? 50 : -40;
+        name === "wood_side" ||
+        name === "fence"
+      ) {
+        if (x % 4 === 0) variation -= 35;
       }
 
-      const ore = {
-        coal: 0x222528,
-        iron: 0xd5a07e,
-        gold: 0xf2c63a,
-        diamond: 0x36e3df,
-        copper: 0xd07854
+      if (name === "wood_top") {
+        const radius = Math.floor(
+          Math.max(
+            Math.abs(x - 7.5),
+            Math.abs(y - 7.5)
+          )
+        );
+
+        if (radius % 3 === 0) {
+          variation -= 40;
+        }
+      }
+
+      if (name === "planks" && y % 5 === 0) {
+        variation -= 35;
+      }
+
+      if (
+        name === "cobble" &&
+        (x % 6 === 0 || y % 5 === 0)
+      ) {
+        variation -= 35;
+      }
+
+      if (
+        name === "glass" &&
+        (x === 0 || x === 15 ||
+         y === 0 || y === 15)
+      ) {
+        variation += 60;
+      }
+
+      if (name === "farmland" && x % 4 === 0) {
+        variation -= 38;
+      }
+
+      if (name === "wheat_crop" && x % 4 === 2) {
+        variation += 48;
+      }
+
+      if (
+        name === "chest" &&
+        (x === 1 || x === 14 ||
+         y === 3 || y === 12)
+      ) {
+        variation -= 55;
+      }
+
+      if (
+        name === "furnace" &&
+        x > 3 && x < 12 &&
+        y > 6 && y < 13
+      ) {
+        variation -= 65;
+      }
+
+      const oreColors = {
+        coal: 0x252525,
+        iron: 0xcda486,
+        gold: 0xffd33d,
+        diamond: 0x43e0e4,
+        copper: 0xca7957
       };
 
       if (
-        ore[name] &&
-        hash(Math.floor(x / 3), Math.floor(y / 3), t) > .7
+        oreColors[name] &&
+        random2(
+          Math.floor(x / 3),
+          Math.floor(y / 3),
+          t
+        ) > .7
       ) {
-        base = ore[name];
-        n = (hash(x, y, 2) - .5) * 40;
+        base = oreColors[name];
       }
 
-      const i = (y * 16 + x) * 4;
-      im.data[i] = Math.max(
-        0, Math.min(255, ((base >> 16) & 255) + n)
+      if (name === "lava") {
+        variation += random2(
+          Math.floor(x / 3),
+          Math.floor(y / 3), t
+        ) > .5 ? 50 : -30;
+      }
+
+      const index = (y * 16 + x) * 4;
+
+      image.data[index] = Math.max(
+        0,
+        Math.min(
+          255,
+          ((base >> 16) & 255) + variation
+        )
       );
-      im.data[i + 1] = Math.max(
-        0, Math.min(255, ((base >> 8) & 255) + n)
+
+      image.data[index + 1] = Math.max(
+        0,
+        Math.min(
+          255,
+          ((base >> 8) & 255) + variation
+        )
       );
-      im.data[i + 2] = Math.max(
-        0, Math.min(255, (base & 255) + n)
+
+      image.data[index + 2] = Math.max(
+        0,
+        Math.min(
+          255,
+          (base & 255) + variation
+        )
       );
-      im.data[i + 3] = 255;
+
+      image.data[index + 3] = 255;
     }
   }
 
-  pen.putImageData(
-    im, (t % 8) * 16, Math.floor(t / 8) * 16
+  ctx.putImageData(
+    image,
+    (t % 8) * 16,
+    Math.floor(t / 8) * 16
   );
 }
 
@@ -378,257 +435,802 @@ texture.minFilter = THREE.NearestFilter;
 texture.generateMipmaps = false;
 texture.colorSpace = THREE.SRGBColorSpace;
 
-const material = new THREE.MeshLambertMaterial({
+const blockMaterial = new THREE.MeshLambertMaterial({
   map: texture,
-  vertexColors: true,
-  side: THREE.DoubleSide
+  side: THREE.DoubleSide,
+  vertexColors: true
 });
 
-const faces = [
-  {
-    d: [1, 0, 0], shade: .83,
-    p: [
-      [.5, -.5, -.5], [.5, .5, -.5],
-      [.5, .5, .5], [.5, -.5, .5]
-    ]
-  },
-  {
-    d: [-1, 0, 0], shade: .79,
-    p: [
-      [-.5, -.5, .5], [-.5, .5, .5],
-      [-.5, .5, -.5], [-.5, -.5, -.5]
-    ]
-  },
-  {
-    d: [0, 1, 0], shade: 1,
-    p: [
-      [-.5, .5, -.5], [-.5, .5, .5],
-      [.5, .5, .5], [.5, .5, -.5]
-    ]
-  },
-  {
-    d: [0, -1, 0], shade: .65,
-    p: [
-      [-.5, -.5, .5], [-.5, -.5, -.5],
-      [.5, -.5, -.5], [.5, -.5, .5]
-    ]
-  },
-  {
-    d: [0, 0, 1], shade: .92,
-    p: [
-      [.5, -.5, .5], [.5, .5, .5],
-      [-.5, .5, .5], [-.5, -.5, .5]
-    ]
-  },
-  {
-    d: [0, 0, -1], shade: .78,
-    p: [
-      [-.5, -.5, -.5], [-.5, .5, -.5],
-      [.5, .5, -.5], [.5, -.5, -.5]
-    ]
+function textureFor(id, face) {
+  if (id === "grass") {
+    if (face === 2) return "grass_top";
+    if (face === 3) return "dirt";
+    return "grass_side";
   }
-];
 
-function tile(id, face) {
-  const n = id === 'grass'
-    ? face === 2 ? 'grassTop'
-      : face === 3 ? 'dirt' : 'grassSide'
-    : id === 'wood' && (face === 2 || face === 3)
-      ? 'woodTop' : id;
+  if (id === "wood") {
+    if (face === 2 || face === 3) {
+      return "wood_top";
+    }
 
-  return Math.max(0, tileNames.indexOf(n));
+    return "wood_side";
+  }
+
+  if (TEXTURE_NAMES.includes(id)) {
+    return id;
+  }
+
+  return "stone";
 }
 
 function faceUV(id, face) {
-  const t = tile(id, face);
-  const x = (t % 8) * 16;
-  const y = Math.floor(t / 8) * 16;
-  const w = atlas.width, h = atlas.height;
+  const name = textureFor(id, face);
+  const i = TEXTURE_NAMES.indexOf(name);
+  const column = i % 8;
+  const row = Math.floor(i / 8);
+
+  const left = (column * 16 + .3) / atlas.width;
+  const right =
+    (column * 16 + 15.7) / atlas.width;
+
+  const top =
+    1 - (row * 16 + .3) / atlas.height;
+
+  const bottom =
+    1 - (row * 16 + 15.7) / atlas.height;
 
   return [
-    [(x + .35) / w, 1 - (y + 15.65) / h],
-    [(x + .35) / w, 1 - (y + .35) / h],
-    [(x + 15.65) / w, 1 - (y + .35) / h],
-    [(x + 15.65) / w, 1 - (y + 15.65) / h]
+    [left, bottom],
+    [left, top],
+    [right, top],
+    [right, bottom]
   ];
 }
 
-// FAST CHUNK RENDERING
+// ---------------------------------------
+// WORLD GENERATION
+// ---------------------------------------
+
+function terrainHeight(x, z) {
+  let h = Math.floor(
+    Math.sin(x * .015) * 6 +
+    Math.cos(z * .014) * 6 +
+    Math.sin((x - z) * .008) * 5 +
+    Math.sin(x * .1) * 2
+  );
+
+  if (Math.hypot(x, z - 4) < 20) {
+    h = Math.max(4, h);
+  }
+
+  // A level region for the village.
+  if (
+    x >= 44 && x <= 80 &&
+    z >= 18 && z <= 54
+  ) {
+    h = 5;
+  }
+
+  return h;
+}
+
+function treeAt(x, z) {
+  return (
+    x % 9 === 0 &&
+    z % 9 === 0 &&
+    terrainHeight(x, z) > 2 &&
+    random2(x / 9, z / 9) > .48 &&
+    Math.hypot(x, z - 4) > 10 &&
+    !(x >= 40 && x <= 85 &&
+      z >= 14 && z <= 58)
+  );
+}
+
+function villageBlock(x, y, z) {
+  if (
+    x < 44 || x > 80 ||
+    z < 18 || z > 54
+  ) return null;
+
+  // Four simple houses.
+  const houses = [
+    [51, 27],
+    [71, 27],
+    [51, 45],
+    [71, 45]
+  ];
+
+  for (const [cx, cz] of houses) {
+    const inside =
+      x >= cx - 3 && x <= cx + 3 &&
+      z >= cz - 3 && z <= cz + 3;
+
+    if (!inside) continue;
+
+    const wall =
+      x === cx - 3 ||
+      x === cx + 3 ||
+      z === cz - 3 ||
+      z === cz + 3;
+
+    if (
+      x === cx &&
+      z === cz - 3 &&
+      (y === 6 || y === 7)
+    ) return null;
+
+    if (y === 6 && x === cx && z === cz) {
+      return "bed";
+    }
+
+    if (
+      y >= 6 && y <= 8 &&
+      wall
+    ) {
+      if (
+        y === 7 &&
+        ((x === cx && z === cz + 3) ||
+         (x === cx + 3 && z === cz))
+      ) {
+        return "glass";
+      }
+
+      return "planks";
+    }
+
+    if (y === 9) {
+      return "wood";
+    }
+  }
+
+  // Village farming area.
+  if (
+    x >= 58 && x <= 65 &&
+    z >= 37 && z <= 43
+  ) {
+    if (y === 6) return "farmland";
+    if (y === 7) return "wheat_crop";
+  }
+
+  if (
+    x === 61 &&
+    z === 30 &&
+    y === 6
+  ) {
+    return "chest";
+  }
+
+  return null;
+}
+
+function cave(x, y, z) {
+  if (y > -7 || y < LOWEST_Y + 2) {
+    return false;
+  }
+
+  const n =
+    Math.sin(x * .16 + y * .11) +
+    Math.cos(z * .13 - y * .12) +
+    Math.sin((x + z) * .09 + y * .16);
+
+  return n > 2.4;
+}
+
+function naturalBlock(x, y, z) {
+  if (y <= LOWEST_Y) {
+    return "bedrock";
+  }
+
+  const village = villageBlock(x, y, z);
+
+  if (village) return village;
+
+  const surface = terrainHeight(x, z);
+
+  // Tree trunks and leaves.
+  if (y > surface) {
+    for (
+      let tx = Math.floor((x - 2) / 9) * 9;
+      tx <= x + 2;
+      tx += 9
+    ) {
+      for (
+        let tz = Math.floor((z - 2) / 9) * 9;
+        tz <= z + 2;
+        tz += 9
+      ) {
+        if (!treeAt(tx, tz)) continue;
+
+        const th = terrainHeight(tx, tz);
+        const dx = Math.abs(x - tx);
+        const dz = Math.abs(z - tz);
+
+        if (
+          dx === 0 &&
+          dz === 0 &&
+          y > th &&
+          y <= th + 4
+        ) {
+          return "wood";
+        }
+
+        if (
+          dx <= 2 &&
+          dz <= 2 &&
+          dx + dz <= 3 &&
+          y >= th + 3 &&
+          y <= th + 6
+        ) {
+          return "leaves";
+        }
+      }
+    }
+
+    return null;
+  }
+
+  if (y === surface) {
+    return surface <= 0 ? "sand" : "grass";
+  }
+
+  if (y >= surface - 3) {
+    return "dirt";
+  }
+
+  if (cave(x, y, z)) {
+    if (
+      y < -30 &&
+      random2(x + y, z + y) > .65
+    ) {
+      return "lava";
+    }
+
+    return null;
+  }
+
+  const ore = random2(
+    x * 7 + y * 11,
+    z * 13 + y * 17
+  );
+
+  if (y < -30 && ore > .99) {
+    return "diamond";
+  }
+
+  if (y < -23 && ore > .981) {
+    return "gold";
+  }
+
+  if (y < -13 && ore > .975) {
+    return "iron";
+  }
+
+  if (y < -8 && ore > .972) {
+    return "copper";
+  }
+
+  if (y < -5 && ore > .95) {
+    return "coal";
+  }
+
+  return "stone";
+}
+
+function getBlock(x, y, z) {
+  const key = itemKey(x, y, z);
+
+  return edits.has(key)
+    ? edits.get(key)
+    : naturalBlock(x, y, z);
+}
+
+// ---------------------------------------
+// CHUNK GEOMETRY
+// ---------------------------------------
+
 const chunks = new Map();
-const waters = new Map();
+const waterMeshes = new Map();
+
+const FACES = [
+  {
+    dir: [1, 0, 0],
+    points: [
+      [.5,-.5,-.5], [.5,.5,-.5],
+      [.5,.5,.5], [.5,-.5,.5]
+    ],
+    light: .82
+  },
+  {
+    dir: [-1, 0, 0],
+    points: [
+      [-.5,-.5,.5], [-.5,.5,.5],
+      [-.5,.5,-.5], [-.5,-.5,-.5]
+    ],
+    light: .8
+  },
+  {
+    dir: [0, 1, 0],
+    points: [
+      [-.5,.5,-.5], [-.5,.5,.5],
+      [.5,.5,.5], [.5,.5,-.5]
+    ],
+    light: 1
+  },
+  {
+    dir: [0, -1, 0],
+    points: [
+      [-.5,-.5,.5], [-.5,-.5,-.5],
+      [.5,-.5,-.5], [.5,-.5,.5]
+    ],
+    light: .65
+  },
+  {
+    dir: [0, 0, 1],
+    points: [
+      [.5,-.5,.5], [.5,.5,.5],
+      [-.5,.5,.5], [-.5,-.5,.5]
+    ],
+    light: .93
+  },
+  {
+    dir: [0, 0, -1],
+    points: [
+      [-.5,-.5,-.5], [-.5,.5,-.5],
+      [.5,.5,-.5], [.5,-.5,-.5]
+    ],
+    light: .78
+  }
+];
 
 const waterMaterial = new THREE.MeshPhongMaterial({
-  color: 0x258ac5,
+  color: 0x278ec9,
   transparent: true,
-  opacity: .65,
+  opacity: .72,
   side: THREE.DoubleSide,
   depthWrite: false
 });
 
-function createChunk(cx, cz) {
-  const pos = [], nor = [], uv = [], col = [], idx = [];
+function makeChunk(cx, cz) {
+  const positions = [];
+  const normals = [];
+  const colors = [];
+  const uvs = [];
+  const indices = [];
 
-  for (let x = cx * CS; x < (cx + 1) * CS; x++) {
-    for (let z = cz * CS; z < (cz + 1) * CS; z++) {
-      const top = height(x, z) + 6;
+  for (
+    let x = cx * CHUNK;
+    x < (cx + 1) * CHUNK;
+    x++
+  ) {
+    for (
+      let z = cz * CHUNK;
+      z < (cz + 1) * CHUNK;
+      z++
+    ) {
+      for (
+        let y = LOWEST_Y + 1;
+        y <= terrainHeight(x, z) + 8;
+        y++
+      ) {
+        const id = getBlock(x, y, z);
 
-      for (let y = FLOOR + 1; y <= top; y++) {
-        const id = block(x, y, z);
         if (!id) continue;
 
         for (let f = 0; f < 6; f++) {
-          const face = faces[f];
-          const [dx, dy, dz] = face.d;
+          const face = FACES[f];
+          const [dx, dy, dz] = face.dir;
 
-          // Skip hidden faces entirely.
-          if (block(x + dx, y + dy, z + dz)) continue;
+          if (getBlock(
+            x + dx,
+            y + dy,
+            z + dz
+          )) continue;
 
-          const start = pos.length / 3;
-          const tex = faceUV(id, f);
-          const shade = face.shade *
-            (.96 + hash(x, z, y) * .07);
+          const first = positions.length / 3;
+          const uv = faceUV(id, f);
 
-          for (let i = 0; i < 4; i++) {
-            const q = face.p[i];
+          for (let j = 0; j < 4; j++) {
+            const p = face.points[j];
 
-            pos.push(x + q[0], y + q[1], z + q[2]);
-            nor.push(...face.d);
-            uv.push(...tex[i]);
-            col.push(shade, shade, shade);
+            positions.push(
+              x + p[0],
+              y + p[1],
+              z + p[2]
+            );
+
+            normals.push(...face.dir);
+            uvs.push(...uv[j]);
+
+            colors.push(
+              face.light,
+              face.light,
+              face.light
+            );
           }
 
-          idx.push(
-            start, start + 1, start + 2,
-            start, start + 2, start + 3
+          indices.push(
+            first,
+            first + 1,
+            first + 2,
+            first,
+            first + 2,
+            first + 3
           );
         }
       }
     }
   }
 
-  const g = new THREE.BufferGeometry();
+  const geometry = new THREE.BufferGeometry();
 
-  g.setAttribute('position',
-    new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('normal',
-    new THREE.Float32BufferAttribute(nor, 3));
-  g.setAttribute('uv',
-    new THREE.Float32BufferAttribute(uv, 2));
-  g.setAttribute('color',
-    new THREE.Float32BufferAttribute(col, 3));
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      positions, 3
+    )
+  );
 
-  g.setIndex(idx);
-  g.computeBoundingSphere();
+  geometry.setAttribute(
+    "normal",
+    new THREE.Float32BufferAttribute(
+      normals, 3
+    )
+  );
 
-  const mesh = new THREE.Mesh(g, material);
+  geometry.setAttribute(
+    "uv",
+    new THREE.Float32BufferAttribute(
+      uvs, 2
+    )
+  );
+
+  geometry.setAttribute(
+    "color",
+    new THREE.Float32BufferAttribute(
+      colors, 3
+    )
+  );
+
+  geometry.setIndex(indices);
+  geometry.computeBoundingSphere();
+
+  const mesh = new THREE.Mesh(
+    geometry,
+    blockMaterial
+  );
+
   mesh.userData.terrain = true;
   scene.add(mesh);
+
   return mesh;
 }
 
-function createWater(cx, cz) {
-  const pos = [], idx = [];
+function waterAt(x, y, z) {
+  const edited = edits.get(itemKey(x, y, z));
 
-  for (let x = cx * CS; x < (cx + 1) * CS; x++) {
-    for (let z = cz * CS; z < (cz + 1) * CS; z++) {
-      if (height(x, z) > 0) continue;
+  if (edited === "water") return true;
 
-      const n = pos.length / 3;
-      pos.push(
-        x - .5, .55, z - .5,
-        x + .5, .55, z - .5,
-        x + .5, .55, z + .5,
-        x - .5, .55, z + .5
-      );
-      idx.push(n, n + 1, n + 2, n, n + 2, n + 3);
+  if (edited !== undefined) return false;
+
+  return (
+    y === WATER_LEVEL &&
+    terrainHeight(x, z) < WATER_LEVEL
+  );
+}
+
+function makeWater(cx, cz) {
+  const positions = [];
+  const indices = [];
+
+  for (
+    let x = cx * CHUNK;
+    x < (cx + 1) * CHUNK;
+    x++
+  ) {
+    for (
+      let z = cz * CHUNK;
+      z < (cz + 1) * CHUNK;
+      z++
+    ) {
+      // Natural ocean water and placed sources.
+      for (let y = -1; y <= 12; y++) {
+        if (!waterAt(x, y, z)) continue;
+
+        const first = positions.length / 3;
+
+        positions.push(
+          x - .5, y + .4, z - .5,
+          x + .5, y + .4, z - .5,
+          x + .5, y + .4, z + .5,
+          x - .5, y + .4, z + .5
+        );
+
+        indices.push(
+          first,
+          first + 1,
+          first + 2,
+          first,
+          first + 2,
+          first + 3
+        );
+      }
     }
   }
 
-  if (!idx.length) return;
+  if (!indices.length) return;
 
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position',
-    new THREE.Float32BufferAttribute(pos, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
+  const geometry = new THREE.BufferGeometry();
 
-  const mesh = new THREE.Mesh(g, waterMaterial);
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      positions, 3
+    )
+  );
+
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+
+  const mesh = new THREE.Mesh(
+    geometry,
+    waterMaterial
+  );
+
   scene.add(mesh);
-  waters.set(`${cx},${cz}`, mesh);
+  waterMeshes.set(`${cx},${cz}`, mesh);
 }
 
-function removeChunk(k) {
-  const m = chunks.get(k);
+function removeChunk(cx, cz) {
+  const key = `${cx},${cz}`;
 
-  if (m) {
-    scene.remove(m);
-    m.geometry.dispose();
-    chunks.delete(k);
+  const terrain = chunks.get(key);
+
+  if (terrain) {
+    scene.remove(terrain);
+    terrain.geometry.dispose();
+    chunks.delete(key);
   }
 
-  const w = waters.get(k);
+  const water = waterMeshes.get(key);
 
-  if (w) {
-    scene.remove(w);
-    w.geometry.dispose();
-    waters.delete(k);
+  if (water) {
+    scene.remove(water);
+    water.geometry.dispose();
+    waterMeshes.delete(key);
   }
 }
 
-function regenerate(cx, cz) {
-  const k = `${cx},${cz}`;
-  if (!chunks.has(k)) return;
+function rebuild(cx, cz) {
+  const key = `${cx},${cz}`;
 
-  removeChunk(k);
-  chunks.set(k, createChunk(cx, cz));
-  createWater(cx, cz);
+  if (!chunks.has(key)) return;
+
+  removeChunk(cx, cz);
+
+  chunks.set(key, makeChunk(cx, cz));
+  makeWater(cx, cz);
 }
 
-function change(x, y, z, id) {
-  if (y <= FLOOR || y > 60) return false;
+function setBlock(x, y, z, id) {
+  if (y <= LOWEST_Y || y > 60) {
+    return false;
+  }
 
-  edits.set(key(x, y, z), id);
+  edits.set(itemKey(x, y, z), id);
 
-  const cx = Math.floor(x / CS);
-  const cz = Math.floor(z / CS);
+  const cx = Math.floor(x / CHUNK);
+  const cz = Math.floor(z / CHUNK);
 
-  // Only update the changed chunk.
-  regenerate(cx, cz);
+  rebuild(cx, cz);
 
-  // Only rebuild neighbors if a chunk border changed.
-  if (x % CS === 0) regenerate(cx - 1, cz);
-  if (x % CS === CS - 1) regenerate(cx + 1, cz);
-  if (z % CS === 0) regenerate(cx, cz - 1);
-  if (z % CS === CS - 1) regenerate(cx, cz + 1);
+  if (x % CHUNK === 0) {
+    rebuild(cx - 1, cz);
+  }
+
+  if (x % CHUNK === CHUNK - 1) {
+    rebuild(cx + 1, cz);
+  }
+
+  if (z % CHUNK === 0) {
+    rebuild(cx, cz - 1);
+  }
+
+  if (z % CHUNK === CHUNK - 1) {
+    rebuild(cx, cz + 1);
+  }
 
   return true;
 }
 
-// PLAYER
+// ---------------------------------------
+// PLAYER AND MOVEMENT
+// ---------------------------------------
+
 const player = {
-  yaw: 0, pitch: 0, vy: 0,
-  ground: false, fly: false, creative: false
+  yaw: 0,
+  pitch: 0,
+  velocityY: 0,
+  grounded: false
 };
 
-camera.position.set(0, height(0, 3) + 2.3, 3);
+camera.position.set(
+  0,
+  terrainHeight(0, 4) + 2.3,
+  4
+);
 
 if (
   Array.isArray(saved.position) &&
   saved.position.length === 3 &&
-  saved.position.every(Number.isFinite)
-) camera.position.fromArray(saved.position);
+  saved.position.every(Number.isFinite) &&
+  saved.position[1] > LOWEST_Y + 2
+) {
+  camera.position.fromArray(saved.position);
+}
 
 const keys = {};
-const move = new THREE.Vector3();
-let currentChunk = '';
+const movement = new THREE.Vector3();
 
-function stream() {
-  const cx = Math.floor(camera.position.x / CS);
-  const cz = Math.floor(camera.position.z / CS);
+function solid(x, y, z) {
+  const id = getBlock(
+    Math.round(x),
+    Math.round(y),
+    Math.round(z)
+  );
+
+  return (
+    !!id &&
+    id !== "leaves" &&
+    id !== "lava" &&
+    id !== "water" &&
+    id !== "wheat_crop"
+  );
+}
+
+function collision(p) {
+  for (const dx of [-.26, .26]) {
+    for (const dz of [-.26, .26]) {
+      for (const dy of [-1.45, -.8, -.1]) {
+        if (solid(
+          p.x + dx,
+          p.y + dy,
+          p.z + dz
+        )) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function moveAxis(axis, value) {
+  const future = camera.position.clone();
+  future[axis] += value;
+
+  if (collision(future)) return false;
+
+  camera.position[axis] = future[axis];
+  return true;
+}
+
+// ---------------------------------------
+// VILLAGERS
+// ---------------------------------------
+
+const villagers = [];
+const villagerGroups = new Set();
+
+function makeVillager(x, z) {
+  const group = new THREE.Group();
+
+  function part(w, h, d, color, px, py, pz) {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      new THREE.MeshLambertMaterial({
+        color
+      })
+    );
+
+    mesh.position.set(px, py, pz);
+    group.add(mesh);
+  }
+
+  // Body, head, nose, eyes and legs.
+  part(.65, .85, .4, 0x794f3c, 0, .9, 0);
+  part(.52, .52, .5, 0xc99b7b, 0, 1.62, 0);
+  part(.15, .2, .18, 0xa97a60, 0, 1.53, -.33);
+
+  part(.07, .07, .04, 0x224b38, -.13, 1.7, -.27);
+  part(.07, .07, .04, 0x224b38, .13, 1.7, -.27);
+
+  part(.2, .5, .2, 0x4b3330, -.18, .26, 0);
+  part(.2, .5, .2, 0x4b3330, .18, .26, 0);
+
+  group.position.set(
+    x,
+    terrainHeight(Math.round(x), Math.round(z)) + .5,
+    z
+  );
+
+  group.userData.villager = true;
+  group.userData.walkDirection = Math.random() * 6.28;
+  group.userData.walkTimer = 0;
+
+  scene.add(group);
+  villagers.push(group);
+}
+
+function spawnVillagePeople() {
+  if (villagerGroups.has("main-village")) return;
+
+  villagerGroups.add("main-village");
+
+  [
+    [52, 32],
+    [70, 33],
+    [56, 48],
+    [68, 47]
+  ].forEach(([x, z]) => {
+    makeVillager(x, z);
+  });
+}
+
+function updateVillagers(dt) {
+  for (const v of villagers) {
+    v.userData.walkTimer -= dt;
+
+    if (v.userData.walkTimer <= 0) {
+      v.userData.walkTimer = 2 + Math.random() * 3;
+      v.userData.walkDirection +=
+        (Math.random() - .5) * 2;
+    }
+
+    const a = v.userData.walkDirection;
+    const x = v.position.x + Math.sin(a) * dt * .6;
+    const z = v.position.z + Math.cos(a) * dt * .6;
+
+    if (
+      x < 44 || x > 80 ||
+      z < 18 || z > 54
+    ) {
+      v.userData.walkDirection += Math.PI;
+      continue;
+    }
+
+    const ground = terrainHeight(
+      Math.round(x),
+      Math.round(z)
+    );
+
+    if (
+      !solid(Math.round(x), ground + 1, Math.round(z))
+    ) {
+      v.position.set(x, ground + .5, z);
+    } else {
+      v.userData.walkDirection += Math.PI;
+    }
+
+    v.rotation.y = a;
+  }
+}
+
+let lastChunk = "";
+
+function streamWorld() {
+  const cx = Math.floor(
+    camera.position.x / CHUNK
+  );
+
+  const cz = Math.floor(
+    camera.position.z / CHUNK
+  );
+
   const center = `${cx},${cz}`;
+  if (lastChunk === center) return;
 
-  if (center === currentChunk) return;
-  currentChunk = center;
+  lastChunk = center;
 
   const required = new Set();
 
@@ -638,625 +1240,447 @@ function stream() {
     }
   }
 
-  for (const k of [...chunks.keys()]) {
-    if (!required.has(k)) removeChunk(k);
-  }
-
-  for (const k of required) {
-    if (chunks.has(k)) continue;
-
-    const [x, z] = k.split(',').map(Number);
-    chunks.set(k, createChunk(x, z));
-    createWater(x, z);
-  }
-
-  spawnNearby(cx, cz);
-}
-
-function isSolid(x, y, z) {
-  const b = block(
-    Math.round(x),
-    Math.round(y),
-    Math.round(z)
-  );
-
-  return !!b && b !== 'leaves' && b !== 'lava';
-}
-
-function collision(p) {
-  for (const x of [-.27, .27]) {
-    for (const z of [-.27, .27]) {
-      for (const y of [-1.45, -.85, -.1]) {
-        if (isSolid(
-          p.x + x, p.y + y, p.z + z
-        )) return true;
-      }
-    }
-  }
-  return false;
-}
-
-function shift(axis, amount) {
-  const p = camera.position.clone();
-  p[axis] += amount;
-
-  if (!collision(p)) {
-    camera.position[axis] = p[axis];
-    return true;
-  }
-  return false;
-}
-
-// LIGHTWEIGHT ANIMALS AND MONSTERS
-const mobs = [];
-const created = new Set();
-
-const COLORS = {
-  cow: 0xe8e4de,
-  pig: 0xf4a6b6,
-  sheep: 0xeeeeec,
-  chicken: 0xf6f4d9,
-  fish: 0xe9a133,
-  zombie: 0x6ca46e,
-  skeleton: 0xdfdcd4
-};
-
-function cube(group, w, h, d, color, x, y, z) {
-  const m = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, d),
-    new THREE.MeshLambertMaterial({color})
-  );
-  m.position.set(x, y, z);
-  group.add(m);
-}
-
-function spawn(kind, x, z) {
-  if (mobs.length >= 24) return;
-
-  const g = new THREE.Group();
-  const color = COLORS[kind];
-  const fish = kind === 'fish';
-  const enemy = kind === 'zombie' || kind === 'skeleton';
-
-  cube(g, .75, .55, fish ? .65 : 1.05,
-    color, 0, .75, 0);
-
-  cube(g, .45, .46, .43,
-    color, 0, .92, -.62);
-
-  // Eyes
-  for (const a of [-.16, .16]) {
-    cube(g, .08, .09, .06,
-      enemy ? 0xff3333 : 0x111111,
-      a, 1.05, -.86);
-  }
-
-  if (!fish) {
-    for (const a of [-.25, .25]) {
-      for (const b of [-.35, .35]) {
-        cube(g, .15, .45, .15,
-          color, a, .25, b);
-      }
+  for (const key of [...chunks.keys()]) {
+    if (!required.has(key)) {
+      const [x, z] = key.split(",").map(Number);
+      removeChunk(x, z);
     }
   }
 
-  if (kind === 'pig' || kind === 'cow') {
-    cube(g, .24, .15, .12,
-      0xd89090, 0, .84, -.9);
+  for (const key of required) {
+    if (chunks.has(key)) continue;
+
+    const [x, z] = key.split(",").map(Number);
+
+    chunks.set(key, makeChunk(x, z));
+    makeWater(x, z);
   }
 
-  if (kind === 'chicken') {
-    cube(g, .2, .11, .18,
-      0xffbe3e, 0, .83, -.9);
-  }
-
-  g.position.set(
-    x,
-    fish ? 0 : height(Math.round(x), Math.round(z)) + .5,
-    z
-  );
-
-  g.userData.mob = {
-    kind, enemy,
-    hp: enemy ? 22 : 15,
-    dir: hash(x, z) * 6.28,
-    t: 0, attack: 0
-  };
-
-  scene.add(g);
-  mobs.push(g);
-}
-
-function spawnNearby(cx, cz) {
-  for (let a = cx - 1; a <= cx + 1; a++) {
-    for (let b = cz - 1; b <= cz + 1; b++) {
-      const k = `${a},${b}`;
-      if (created.has(k)) continue;
-
-      created.add(k);
-
-      for (let i = 0; i < 2; i++) {
-        const x = a * CS +
-          Math.floor(hash(a, b, i) * CS);
-        const z = b * CS +
-          Math.floor(hash(b, a, i + 9) * CS);
-
-        const kinds = height(x, z) <= 0
-          ? ['fish']
-          : ['cow', 'pig', 'sheep', 'chicken',
-             'zombie', 'skeleton'];
-
-        const kind = kinds[
-          Math.floor(hash(x, z, 8) * kinds.length)
-        ];
-
-        spawn(kind, x, z);
-      }
-    }
-  }
-
-  for (let i = mobs.length - 1; i >= 0; i--) {
-    if (
-      mobs[i].position.distanceTo(camera.position) > 65
-    ) {
-      scene.remove(mobs[i]);
-      mobs.splice(i, 1);
-    }
+  // Village residents appear near their village.
+  if (
+    cx >= 2 && cx <= 7 &&
+    cz >= 0 && cz <= 6
+  ) {
+    spawnVillagePeople();
   }
 }
 
-function mobsTick(dt, t) {
-  const night =
-    worldTime % 240 > 135 &&
-    worldTime % 240 < 220;
+// ---------------------------------------
+// INVENTORY AND CRAFTING UI
+// ---------------------------------------
 
-  for (const g of mobs) {
-    const m = g.userData.mob;
-    g.visible = !m.enemy || night;
-
-    if (!g.visible) continue;
-
-    m.t -= dt;
-    m.attack -= dt;
-
-    if (m.t <= 0) {
-      m.t = 2 + hash(t, g.position.x) * 2;
-      m.dir += (Math.random() - .5) * 2;
-    }
-
-    const dx = camera.position.x - g.position.x;
-    const dz = camera.position.z - g.position.z;
-    const dist = Math.hypot(dx, dz);
-    let speed = .45;
-
-    if (m.enemy && dist < 9) {
-      m.dir = Math.atan2(-dx, -dz);
-      speed = 1.5;
-
-      if (
-        dist < 1.5 &&
-        m.attack <= 0 &&
-        !player.creative
-      ) {
-        health = Math.max(0, health - 6);
-        m.attack = 1.5;
-        notice('Monster attack!');
-      }
-    }
-
-    const x = g.position.x -
-      Math.sin(m.dir) * dt * speed;
-    const z = g.position.z -
-      Math.cos(m.dir) * dt * speed;
-    const n = height(Math.round(x), Math.round(z));
-
-    if (m.kind === 'fish') {
-      if (n <= 0) g.position.set(x, 0, z);
-      else m.dir += Math.PI;
-    } else if (
-      Math.abs(
-        n - height(
-          Math.round(g.position.x),
-          Math.round(g.position.z)
-        )
-      ) <= 1 &&
-      !['fence', 'wood', 'planks', 'glass', 'chest']
-        .includes(block(Math.round(x), n + 1, Math.round(z)))
-    ) {
-      g.position.set(x, n + .5, z);
-    } else {
-      m.dir += Math.PI;
-    }
-
-    g.rotation.y = m.dir;
-  }
-}
-
-// MENUS, INVENTORY AND SAVE
-let playing = false;
-let panel = null;
+let panelType = null;
 let currentChest = null;
-let noticeLeft = 0;
-let attackLeft = 0;
+let playing = false;
 
-function notice(s) {
-  $('notice').textContent = s;
-  noticeLeft = 2;
+function notify(text) {
+  $("message").textContent = text;
 }
 
-function saveGame(silent = false) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify({
-      edits: [...edits],
-      chests,
-      inventory,
-      position: camera.position.toArray(),
-      equipped,
-      health,
-      hunger,
-      level,
-      xp,
-      worldTime
-    }));
+function row(title, details, buttons) {
+  const root = $("panelItems");
 
-    if (!silent) notice('World saved');
-  } catch {
-    notice('Save is full: browser storage limit');
+  const element = document.createElement("div");
+  element.className = "item-row";
+
+  const info = document.createElement("div");
+  info.className = "item-info";
+
+  const strong = document.createElement("strong");
+  strong.textContent = title;
+
+  const small = document.createElement("small");
+  small.textContent = details;
+
+  info.append(strong, small);
+  element.append(info);
+
+  for (const [label, callback, disabled] of buttons) {
+    const button = document.createElement("button");
+    button.textContent = label;
+    button.disabled = !!disabled;
+    button.onclick = callback;
+
+    element.append(button);
   }
+
+  root.append(element);
 }
 
-let resetting = false;
+function openPanel(type, chestKey = null) {
+  panelType = type;
+  currentChest = chestKey;
 
-window.addEventListener('beforeunload', () => {
-  if (!resetting) saveGame(true);
-});
+  $("panel").hidden = false;
+  $("menu").hidden = true;
 
-$('reset').onclick = () => {
-  if (confirm('Erase the FAST version saved world?')) {
-    resetting = true;
-    localStorage.removeItem(KEY);
-    location.reload();
+  if (document.pointerLockElement) {
+    document.exitPointerLock();
   }
-};
 
-$('play').onclick = () => {
-  panel = null;
-  $('panel').hidden = true;
-  renderer.domElement.requestPointerLock();
-};
-
-function showPanel(type, chest = null) {
-  panel = type;
-  currentChest = chest;
-  $('panel').hidden = false;
-  $('menu').hidden = true;
-  document.exitPointerLock?.();
   drawPanel();
 }
 
 function closePanel() {
-  panel = null;
+  panelType = null;
   currentChest = null;
-  $('panel').hidden = true;
-  $('menu').hidden = true;
 
-  renderer.domElement.requestPointerLock().catch(() => {
-    $('menu').hidden = false;
-  });
+  $("panel").hidden = true;
+  $("menu").hidden = true;
+
+  renderer.domElement.requestPointerLock()
+    .catch(() => {
+      $("menu").hidden = false;
+    });
 }
 
-$('closePanel').onclick = closePanel;
-
-document.addEventListener('pointerlockchange', () => {
-  playing = document.pointerLockElement === renderer.domElement;
-  $('menu').hidden = playing || !!panel;
-  $('hud').hidden = !playing;
-
-  if (!playing) {
-    for (const k of Object.keys(keys)) {
-      keys[k] = false;
-    }
-  }
-});
-
-function entry(root, name, desc, buttons) {
-  const d = document.createElement('div');
-  d.className = 'entry';
-
-  const info = document.createElement('div');
-  info.className = 'info';
-
-  const title = document.createElement('strong');
-  title.textContent = name;
-
-  const sub = document.createElement('small');
-  sub.textContent = desc;
-
-  info.append(title, sub);
-  d.append(info);
-
-  for (const [label, fn, disabled] of buttons) {
-    const b = document.createElement('button');
-    b.textContent = label;
-    b.onclick = fn;
-    b.disabled = !!disabled;
-    d.append(b);
-  }
-
-  root.append(d);
-}
+$("closePanel").onclick = closePanel;
 
 function drawPanel() {
-  if (!panel) return;
+  if (!panelType) return;
 
-  const root = $('panelContent');
-  root.replaceChildren();
+  $("panelItems").replaceChildren();
 
-  $('panelTitle').textContent = {
-    inventory: '🎒 INVENTORY',
-    craft: '🔨 CRAFTING',
-    chest: '📦 CHEST',
-    furnace: '🔥 FURNACE'
-  }[panel];
+  $("panelTitle").textContent = {
+    inventory: "INVENTORY",
+    crafting: "CRAFTING",
+    chest: "CHEST STORAGE",
+    furnace: "FURNACE",
+    trade: "VILLAGER TRADING"
+  }[panelType];
 
-  $('panelHelp').textContent =
-    panel === 'inventory'
-      ? 'Choose blocks for your hotbar or equip a weapon.'
-      : panel === 'craft'
-        ? 'Craft items from collected resources.'
-        : panel === 'chest'
-          ? 'Store items and take them back.'
-          : 'Cook raw meat with wood or coal.';
+  $("panelDescription").textContent = {
+    inventory: "Select an item for your hotbar.",
+    crafting: "Make items using available materials.",
+    chest: "Store and retrieve items.",
+    furnace: "Cook raw meat with wood or coal.",
+    trade: "Exchange emeralds for goods."
+  }[panelType];
 
-  if (panel === 'inventory') {
-    for (const [id, n] of Object.entries(inventory)) {
-      if (!n || !ITEMS[id]) continue;
+  if (panelType === "inventory") {
+    for (const [id, count] of Object.entries(inventory)) {
+      if (count <= 0 || !ITEMS[id]) continue;
 
-      const actions = [];
-
-      if (BLOCKS.has(id) && id !== 'bedrock') {
-        actions.push(['SELECT', () => {
-          if (hotItems.includes(id)) {
-            selected = hotItems.indexOf(id);
-          } else {
-            hotItems[selected] = id;
-          }
-          closePanel();
-        }]);
-      }
-
-      if (DAMAGES[id]) {
-        actions.push(['EQUIP', () => {
-          equipped = id;
-          closePanel();
-        }]);
-      }
-
-      entry(
-        root,
+      row(
         `${ITEMS[id][1]} ${ITEMS[id][0]}`,
-        `Quantity: ${n}`,
-        actions
-      );
-    }
-  }
-
-  if (panel === 'craft') {
-    for (const [id, count, cost] of RECIPES) {
-      const ok = Object.entries(cost).every(
-        ([k, n]) => (inventory[k] || 0) >= n
-      );
-
-      entry(
-        root,
-        `${ITEMS[id][1]} ${count} ${ITEMS[id][0]}`,
-        Object.entries(cost)
-          .map(([k, n]) => `${n} ${ITEMS[k][0]}`)
-          .join(' + '),
+        `Quantity: ${count}`,
         [[
-          'CRAFT',
+          "SELECT",
           () => {
-            if (!Object.entries(cost).every(
-              ([k, n]) => (inventory[k] || 0) >= n
-            )) return;
-
-            for (const [k, n] of Object.entries(cost)) {
-              inventory[k] -= n;
+            if (hotbar.includes(id)) {
+              selected = hotbar.indexOf(id);
+            } else {
+              hotbar[selected] = id;
             }
 
-            inventory[id] = (inventory[id] || 0) + count;
-            drawPanel();
-            notice(`Crafted ${ITEMS[id][0]}`);
-          },
-          !ok
+            closePanel();
+          }
         ]]
       );
     }
   }
 
-  if (panel === 'chest') {
-    chests[currentChest] ||= {};
-    const box = chests[currentChest];
+  if (panelType === "crafting") {
+    for (const [id, count, materials] of RECIPES) {
+      const possible = Object.entries(materials)
+        .every(([item, n]) => {
+          return (inventory[item] || 0) >= n;
+        });
 
-    for (const [id, n] of Object.entries(inventory)) {
-      if (n > 0 && ITEMS[id]) {
-        entry(root, `${ITEMS[id][0]} (bag)`,
-          `${n} available`, [[
-            'STORE 1',
-            () => {
-              inventory[id]--;
-              box[id] = (box[id] || 0) + 1;
-              drawPanel();
-            }
-          ]]
-        );
-      }
-    }
+      const requirement = Object.entries(materials)
+        .map(([item, n]) => {
+          return `${n} ${ITEMS[item][0]}`;
+        })
+        .join(" + ");
 
-    for (const [id, n] of Object.entries(box)) {
-      if (n > 0 && ITEMS[id]) {
-        entry(root, `${ITEMS[id][0]} (chest)`,
-          `${n} stored`, [[
-            'TAKE 1',
-            () => {
-              box[id]--;
-              inventory[id] = (inventory[id] || 0) + 1;
-              drawPanel();
+      row(
+        `${ITEMS[id][1]} ${count} ${ITEMS[id][0]}`,
+        requirement,
+        [[
+          "CRAFT",
+          () => {
+            if (!Object.entries(materials).every(
+              ([item, n]) => {
+                return (inventory[item] || 0) >= n;
+              }
+            )) return;
+
+            for (const [item, n] of Object.entries(materials)) {
+              inventory[item] -= n;
             }
-          ]]
-        );
-      }
+
+            addItem(id, count);
+            drawPanel();
+            notify(`Crafted ${ITEMS[id][0]}`);
+          },
+          !possible
+        ]]
+      );
     }
   }
 
-  if (panel === 'furnace') {
-    const ok = inventory.raw_meat > 0 &&
-      (inventory.wood > 0 || inventory.coal > 0);
+  if (panelType === "chest") {
+    chestData[currentChest] ||= {};
 
-    entry(
-      root,
-      '🍖 Cook meat',
-      `Raw: ${inventory.raw_meat || 0}; ` +
-      `Wood: ${inventory.wood || 0}; ` +
-      `Coal: ${inventory.coal || 0}`,
+    const contents = chestData[currentChest];
+
+    for (const [id, count] of Object.entries(inventory)) {
+      if (count <= 0 || !ITEMS[id]) continue;
+
+      row(
+        `${ITEMS[id][0]} — Inventory`,
+        `Available: ${count}`,
+        [[
+          "STORE 1",
+          () => {
+            removeItem(id);
+            contents[id] = (contents[id] || 0) + 1;
+            drawPanel();
+          }
+        ]]
+      );
+    }
+
+    for (const [id, count] of Object.entries(contents)) {
+      if (count <= 0 || !ITEMS[id]) continue;
+
+      row(
+        `${ITEMS[id][0]} — Chest`,
+        `Stored: ${count}`,
+        [[
+          "TAKE 1",
+          () => {
+            contents[id]--;
+            addItem(id);
+            drawPanel();
+          }
+        ]]
+      );
+    }
+  }
+
+  if (panelType === "furnace") {
+    const possible =
+      (inventory.raw_meat || 0) > 0 &&
+      ((inventory.coal || 0) > 0 ||
+       (inventory.wood || 0) > 0);
+
+    row(
+      "🍖 Cook Raw Meat",
+      "Uses one raw meat and one fuel item",
       [[
-        'COOK',
+        "COOK",
         () => {
           if (
-            !inventory.raw_meat ||
-            (inventory.wood || 0) +
-            (inventory.coal || 0) === 0
+            !(inventory.raw_meat > 0) ||
+            !(
+              inventory.coal > 0 ||
+              inventory.wood > 0
+            )
           ) return;
 
+          const fuel = inventory.coal > 0
+            ? "coal"
+            : "wood";
+
+          inventory[fuel]--;
           inventory.raw_meat--;
-          inventory[inventory.coal > 0 ? 'coal' : 'wood']--;
-          inventory.cooked_meat =
-            (inventory.cooked_meat || 0) + 1;
+          addItem("cooked_meat");
+
           drawPanel();
         },
-        !ok
+        !possible
       ]]
     );
   }
-}
 
-function eat() {
-  if (inventory.cooked_meat > 0) {
-    inventory.cooked_meat--;
-    hunger = Math.min(100, hunger + 28);
-    health = Math.min(100, health + 4);
-    notice('Ate cooked meat');
-  } else if (inventory.raw_meat > 0) {
-    inventory.raw_meat--;
-    hunger = Math.min(100, hunger + 8);
-    notice('Ate raw meat');
-  } else {
-    notice('No food');
+  if (panelType === "trade") {
+    const trades = [
+      ["wheat", 5, "emerald", 1],
+      ["emerald", 1, "bread", 1],
+      ["emerald", 2, "iron", 1]
+    ];
+
+    // Bread is represented as cooked food
+    // in this simplified game.
+    for (const [cost, count, reward, amount] of trades) {
+      const actualReward = reward === "bread"
+        ? "cooked_meat"
+        : reward;
+
+      row(
+        `${ITEMS[actualReward][1]} ${ITEMS[actualReward][0]}`,
+        `Cost: ${count} ${ITEMS[cost][0]}`,
+        [[
+          "TRADE",
+          () => {
+            if (!removeItem(cost, count)) return;
+
+            addItem(actualReward, amount);
+            drawPanel();
+          },
+          (inventory[cost] || 0) < count
+        ]]
+      );
+    }
   }
 }
 
-// KEYBOARD AND MOUSE
-document.addEventListener('mousemove', e => {
+// ---------------------------------------
+// POINTER LOCK AND KEYS
+// ---------------------------------------
+
+$("play").onclick = () => {
+  panelType = null;
+  $("panel").hidden = true;
+
+  renderer.domElement.requestPointerLock()
+    .catch(() => {
+      notify("Click PLAY to resume.");
+    });
+};
+
+document.addEventListener(
+  "pointerlockchange",
+  () => {
+    playing =
+      document.pointerLockElement === renderer.domElement;
+
+    $("menu").hidden = playing || !!panelType;
+    $("hud").hidden = !playing;
+
+    if (!playing) {
+      for (const code of Object.keys(keys)) {
+        keys[code] = false;
+      }
+    }
+  }
+);
+
+document.addEventListener("mousemove", e => {
   if (!playing) return;
 
-  player.yaw -= e.movementX * .0022;
+  player.yaw -= e.movementX * .002;
   player.pitch = THREE.MathUtils.clamp(
-    player.pitch - e.movementY * .0022,
-    -1.48, 1.48
+    player.pitch - e.movementY * .002,
+    -1.45,
+    1.45
   );
 });
 
-document.addEventListener('keydown', e => {
+document.addEventListener("keydown", e => {
   if ([
-    'Space', 'ArrowUp', 'ArrowDown',
-    'ArrowLeft', 'ArrowRight'
-  ].includes(e.code)) e.preventDefault();
+    "Space",
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight"
+  ].includes(e.code)) {
+    e.preventDefault();
+  }
 
-  if (panel && e.code === 'Escape') {
+  if (panelType && e.code === "Escape") {
     closePanel();
     return;
   }
 
   keys[e.code] = true;
+
   if (!playing || e.repeat) return;
 
   if (/^Digit[1-9]$/.test(e.code)) {
-    selected = +e.code.slice(-1) - 1;
+    selected = Number(e.code.slice(-1)) - 1;
   }
 
-  if (e.code === 'KeyE') showPanel('inventory');
-  if (e.code === 'KeyC') showPanel('craft');
-  if (e.code === 'KeyR') eat();
-  if (e.code === 'KeyP') saveGame();
-
-  if (e.code === 'KeyF') {
-    player.fly = !player.fly;
-    player.vy = 0;
-    notice(player.fly ? 'Flying ON' : 'Flying OFF');
+  if (e.code === "KeyE") {
+    openPanel("inventory");
   }
 
-  if (e.code === 'KeyG') {
-    player.creative = !player.creative;
-    notice(player.creative
-      ? 'Creative Mode' : 'Survival Mode');
+  if (e.code === "KeyC") {
+    openPanel("crafting");
   }
 
-  if (e.code === 'KeyQ') {
-    const list = [
-      'fists',
-      ...Object.keys(DAMAGES)
-        .filter(k => inventory[k] > 0)
-    ];
+  if (e.code === "KeyP") {
+    saveGame();
+  }
 
-    equipped = list[
-      (list.indexOf(equipped) + 1) % list.length
-    ];
+  if (e.code === "KeyF") {
+    flying = !flying;
+    player.velocityY = 0;
+    notify(flying ? "Flying enabled" : "Flying disabled");
+  }
 
-    notice(`Weapon: ${ITEMS[equipped]?.[0] || 'Fists'}`);
+  if (e.code === "KeyG") {
+    creative = !creative;
+    notify(creative ? "Creative mode" : "Survival mode");
+  }
+
+  if (e.code === "KeyV") {
+    camera.position.set(
+      62,
+      terrainHeight(62, 34) + 2.3,
+      34
+    );
+
+    streamWorld();
+    notify("Welcome to the village!");
   }
 });
 
-document.addEventListener('keyup', e => {
+document.addEventListener("keyup", e => {
   keys[e.code] = false;
 });
 
-document.addEventListener('contextmenu', e => {
+document.addEventListener("contextmenu", e => {
   e.preventDefault();
 });
 
-// FAST MINING
-const ray = new THREE.Raycaster();
-const cross = new THREE.Vector2();
+// ---------------------------------------
+// BLOCK TARGETING
+// ---------------------------------------
 
-function target(distance) {
-  ray.setFromCamera(cross, camera);
-  ray.far = distance;
+const raycaster = new THREE.Raycaster();
+const crosshair = new THREE.Vector2();
 
-  const hits = ray.intersectObjects([
+function getTarget(distance = 6) {
+  raycaster.setFromCamera(crosshair, camera);
+  raycaster.far = distance;
+
+  const targets = [
     ...chunks.values(),
-    ...mobs.filter(m => m.visible)
-  ], true);
+    ...villagers
+  ];
+
+  const hits = raycaster.intersectObjects(
+    targets,
+    true
+  );
 
   if (!hits.length) return null;
 
-  const hit = hits[0];
-  let obj = hit.object;
+  let object = hits[0].object;
 
   while (
-    obj.parent &&
-    !obj.userData.terrain &&
-    !obj.userData.mob
-  ) obj = obj.parent;
+    object.parent &&
+    !object.userData.terrain &&
+    !object.userData.villager
+  ) {
+    object = object.parent;
+  }
 
-  return {hit, obj};
+  return {
+    hit: hits[0],
+    object
+  };
 }
 
-function hitBlock(hit, inside) {
-  const n = hit.face.normal.clone()
+function targetPosition(hit, inside) {
+  const normal = hit.face.normal.clone()
     .transformDirection(hit.object.matrixWorld);
 
   const p = hit.point.clone().addScaledVector(
-    n, inside ? -.02 : .02
+    normal,
+    inside ? -.02 : .02
   );
 
   return {
@@ -1266,127 +1690,217 @@ function hitBlock(hit, inside) {
   };
 }
 
-document.addEventListener('mousedown', e => {
-  if (!playing || ![0, 2].includes(e.button) ||
-      attackLeft > 0) return;
+let mineCooldown = 0;
 
-  const r = target(equipped === 'bow' ? 25 : 6);
-  if (!r) return;
+// ---------------------------------------
+// WATER BUCKETS
+// ---------------------------------------
 
-  const {hit, obj} = r;
+function tryCollectWater() {
+  if ((inventory.bucket || 0) <= 0) {
+    notify("You need an empty bucket.");
+    return false;
+  }
 
-  // LEFT CLICK: INSTANT MINE / ATTACK
+  const direction = new THREE.Vector3();
+  camera.getWorldDirection(direction);
+
+  // Check water along the player's line of sight.
+  for (let d = .6; d <= 5; d += .2) {
+    const x = Math.round(
+      camera.position.x + direction.x * d
+    );
+    const y = Math.round(
+      camera.position.y + direction.y * d
+    );
+    const z = Math.round(
+      camera.position.z + direction.z * d
+    );
+
+    if (!waterAt(x, y, z)) continue;
+
+    // Removing naturally generated water creates
+    // an edited empty location at that position.
+    edits.set(itemKey(x, y, z), null);
+
+    inventory.bucket--;
+    addItem("water_bucket");
+
+    rebuild(
+      Math.floor(x / CHUNK),
+      Math.floor(z / CHUNK)
+    );
+
+    notify("Water collected!");
+    return true;
+  }
+
+  notify("Point at water to fill the bucket.");
+  return false;
+}
+
+function tryPlaceWater(position) {
+  if ((inventory.water_bucket || 0) <= 0) {
+    notify("You need a filled water bucket.");
+    return false;
+  }
+
+  if (
+    getBlock(
+      position.x,
+      position.y,
+      position.z
+    )
+  ) {
+    return false;
+  }
+
+  const successful = setBlock(
+    position.x,
+    position.y,
+    position.z,
+    "water"
+  );
+
+  if (!successful) return false;
+
+  inventory.water_bucket--;
+  addItem("bucket");
+
+  notify("Water placed!");
+  return true;
+}
+
+// ---------------------------------------
+// CLICK ACTIONS
+// ---------------------------------------
+
+document.addEventListener("mousedown", e => {
+  if (
+    !playing ||
+    mineCooldown > 0 ||
+    ![0, 2].includes(e.button)
+  ) {
+    return;
+  }
+
+  const result = getTarget();
+
+  // Right-click a water source with a bucket.
+  if (
+    e.button === 2 &&
+    hotbar[selected] === "bucket" &&
+    tryCollectWater()
+  ) {
+    mineCooldown = .12;
+    return;
+  }
+
+  if (!result) return;
+
+  const {hit, object} = result;
+
+  if (object.userData.villager) {
+    if (e.button === 2) {
+      openPanel("trade");
+    }
+    return;
+  }
+
+  if (!object.userData.terrain) return;
+
+  const p = targetPosition(hit, true);
+  const id = getBlock(p.x, p.y, p.z);
+
   if (e.button === 0) {
-    if (obj.userData.mob) {
-      const mob = obj.userData.mob;
+    if (!id || id === "bedrock") return;
 
-      if (equipped === 'bow') {
-        if (!inventory.arrows) {
-          notice('No arrows');
-          return;
-        }
-        inventory.arrows--;
-      }
+    const k = itemKey(p.x, p.y, p.z);
 
-      mob.hp -= DAMAGES[equipped] || 3;
-      attackLeft = .15;
-
-      if (mob.hp <= 0) {
-        scene.remove(obj);
-        mobs.splice(mobs.indexOf(obj), 1);
-
-        if (!mob.enemy) {
-          inventory.raw_meat =
-            (inventory.raw_meat || 0) + 2;
-        } else if (mob.kind === 'skeleton') {
-          inventory.arrows =
-            (inventory.arrows || 0) + 2;
-        }
-
-        xp += 3;
-        notice(`Loot: ${mob.kind}`);
-      }
+    if (
+      id === "chest" &&
+      chestData[k] &&
+      Object.values(chestData[k]).some(
+        amount => amount > 0
+      )
+    ) {
+      notify("Empty the chest before mining it.");
       return;
     }
 
-    if (obj.userData.terrain) {
-      const p = hitBlock(hit, true);
-      const id = block(p.x, p.y, p.z);
-
-      if (!id || id === 'bedrock') return;
-
-      const k = key(p.x, p.y, p.z);
-
-      if (
-        id === 'chest' &&
-        chests[k] &&
-        Object.values(chests[k]).some(n => n > 0)
-      ) {
-        notice('Empty chest before mining');
-        return;
-      }
-
-      if (change(p.x, p.y, p.z, null)) {
-        inventory[id] = (inventory[id] || 0) + 1;
-
-        if (id === 'leaves' && Math.random() < .2) {
-          inventory.seeds = (inventory.seeds || 0) + 1;
-        }
-
-        xp++;
-        attackLeft = .12;
-        notice(`Mined ${ITEMS[id][0]}`);
-      }
+    if (setBlock(p.x, p.y, p.z, null)) {
+      addItem(id);
+      mineCooldown = .12;
+      notify(`Mined ${ITEMS[id]?.[0] || id}`);
     }
+
     return;
   }
 
-  // RIGHT CLICK: PLACE / INTERACT
-  if (obj.userData.mob) {
-    notice('Animals can be hunted with left click');
+  if (id === "chest") {
+    openPanel("chest", itemKey(p.x, p.y, p.z));
     return;
   }
 
-  if (!obj.userData.terrain) return;
-
-  const p = hitBlock(hit, true);
-  const id = block(p.x, p.y, p.z);
-  const k = key(p.x, p.y, p.z);
-
-  if (id === 'chest') {
-    showPanel('chest', k);
+  if (id === "furnace") {
+    openPanel("furnace");
     return;
   }
 
-  if (id === 'furnace') {
-    showPanel('furnace');
+  if (id === "bed") {
+    health = Math.min(100, health + 20);
+    notify("Rested in bed");
     return;
   }
 
-  if (id === 'crops') {
-    change(p.x, p.y, p.z, 'farmland');
-    inventory.wheat = (inventory.wheat || 0) + 2;
-    inventory.seeds = (inventory.seeds || 0) + 2;
-    notice('Harvested crops');
+  if (id === "wheat_crop") {
+    setBlock(p.x, p.y, p.z, "farmland");
+
+    addItem("wheat", 2);
+    addItem("seeds", 2);
+
+    notify("Wheat harvested");
     return;
   }
 
-  if (id === 'farmland' && inventory.seeds > 0) {
+  if (
+    id === "farmland" &&
+    (inventory.seeds || 0) > 0
+  ) {
     inventory.seeds--;
-    change(p.x, p.y, p.z, 'crops');
-    notice('Planted seeds');
+
+    setBlock(
+      p.x,
+      p.y,
+      p.z,
+      "wheat_crop"
+    );
+
+    notify("Seeds planted");
     return;
   }
 
-  const q = hitBlock(hit, false);
-  const item = hotItems[selected];
+  const q = targetPosition(hit, false);
+  const item = hotbar[selected];
 
-  if (!player.creative && !inventory[item]) {
-    notice(`No ${ITEMS[item][0]}`);
+  if (item === "water_bucket") {
+    tryPlaceWater(q);
     return;
   }
 
-  if (block(q.x, q.y, q.z)) return;
+  if (!PLACEABLE.has(item)) {
+    return;
+  }
+
+  if (
+    !creative &&
+    (inventory[item] || 0) <= 0
+  ) {
+    notify("Not enough items.");
+    return;
+  }
+
+  if (getBlock(q.x, q.y, q.z)) return;
 
   const insidePlayer =
     Math.abs(q.x - camera.position.x) < .8 &&
@@ -1396,60 +1910,93 @@ document.addEventListener('mousedown', e => {
 
   if (insidePlayer) return;
 
-  if (change(q.x, q.y, q.z, item)) {
-    if (!player.creative) inventory[item]--;
-    attackLeft = .1;
-    notice(`Placed ${ITEMS[item][0]}`);
+  if (setBlock(q.x, q.y, q.z, item)) {
+    if (!creative) inventory[item]--;
+    mineCooldown = .1;
+    notify(`${ITEMS[item][0]} placed`);
   }
 });
 
-// HOTBAR
-const bar = $('hotbar');
+// ---------------------------------------
+// SAVE WORLD
+// ---------------------------------------
 
-for (let i = 0; i < 9; i++) {
-  const el = document.createElement('div');
-  el.className = 'slot';
+function saveGame(silent = false) {
+  try {
+    localStorage.setItem(
+      SAVE,
+      JSON.stringify({
+        edits: [...edits],
+        chests: chestData,
+        inventory,
+        position: camera.position.toArray(),
+        health,
+        hunger,
+        level
+      })
+    );
 
-  const sp = document.createElement('span');
-  sp.textContent = ITEMS[hotItems[i]][1];
-
-  const sm = document.createElement('small');
-  sm.textContent = i + 1;
-
-  el.append(sp, sm);
-  bar.append(el);
+    if (!silent) notify("World saved");
+  } catch {
+    notify("Cannot save: storage limit reached");
+  }
 }
 
-// GAME LOOP
-stream();
+let resetting = false;
+
+$("reset").onclick = () => {
+  if (confirm("Delete this saved BLOCKVERSE world?")) {
+    resetting = true;
+    localStorage.removeItem(SAVE);
+    location.reload();
+  }
+};
+
+window.addEventListener("beforeunload", () => {
+  if (!resetting) saveGame(true);
+});
+
+// ---------------------------------------
+// HOTBAR
+// ---------------------------------------
+
+const bar = $("hotbar");
+
+for (let i = 0; i < 9; i++) {
+  const slot = document.createElement("div");
+  slot.className = "slot";
+
+  const icon = document.createElement("span");
+  icon.textContent = ITEMS[hotbar[i]][1];
+
+  const number = document.createElement("small");
+  number.textContent = i + 1;
+
+  slot.append(icon, number);
+  bar.append(slot);
+}
+
+// ---------------------------------------
+// MAIN LOOP
+// ---------------------------------------
 
 const clock = new THREE.Clock();
 
-let foodTimer = 0;
 let saveTimer = 0;
-let hazardTimer = 0;
+let hungerTimer = 0;
+let damageTimer = 0;
 
-function frame() {
-  requestAnimationFrame(frame);
+streamWorld();
 
-  const dt = Math.min(.04, clock.getDelta());
-  const t = clock.elapsedTime;
+function update() {
+  requestAnimationFrame(update);
+
+  const dt = Math.min(
+    .04,
+    clock.getDelta()
+  );
 
   if (playing) {
-    worldTime += dt;
-
-    const night =
-      worldTime % 240 > 135 &&
-      worldTime % 240 < 220;
-
-    scene.background.setHex(
-      night ? 0x162a43 : 0x89c8ef
-    );
-    scene.fog.color.copy(scene.background);
-
-    if (keys.ArrowLeft) player.yaw += 2.6 * dt;
-    if (keys.ArrowRight) player.yaw -= 2.6 * dt;
-
     camera.rotation.y = player.yaw;
     camera.rotation.x = player.pitch;
 
@@ -1465,138 +2012,164 @@ function frame() {
       -Math.sin(player.yaw)
     );
 
-    move.set(0, 0, 0);
+    movement.set(0, 0, 0);
 
-    if (keys.KeyW || keys.ArrowUp) move.add(forward);
-    if (keys.KeyS || keys.ArrowDown) move.sub(forward);
-    if (keys.KeyD) move.add(right);
-    if (keys.KeyA) move.sub(right);
+    if (keys.KeyW) movement.add(forward);
+    if (keys.KeyS) movement.sub(forward);
+    if (keys.KeyD) movement.add(right);
+    if (keys.KeyA) movement.sub(right);
 
-    // FASTER MOVEMENT
-    const speed = keys.ShiftLeft ? 14 : 9;
+    const speed = keys.ShiftLeft ? 12 : 7.5;
 
-    if (move.lengthSq()) {
-      move.normalize().multiplyScalar(speed * dt);
-      shift('x', move.x);
-      shift('z', move.z);
+    if (movement.lengthSq() > 0) {
+      movement.normalize().multiplyScalar(speed * dt);
+
+      moveAxis("x", movement.x);
+      moveAxis("z", movement.z);
     }
 
-    if (player.fly || player.creative) {
-      if (keys.Space) shift('y', speed * dt);
-      if (keys.ControlLeft) shift('y', -speed * dt);
-      player.vy = 0;
+    if (flying || creative) {
+      if (keys.Space) {
+        moveAxis("y", speed * dt);
+      }
+
+      if (keys.ControlLeft) {
+        moveAxis("y", -speed * dt);
+      }
+
+      player.velocityY = 0;
     } else {
-      if (keys.Space && player.ground) {
-        player.vy = 8.7;
-        player.ground = false;
+      if (keys.Space && player.grounded) {
+        player.velocityY = 8.5;
+        player.grounded = false;
       }
 
-      player.vy = Math.max(
-        -24, player.vy - 24 * dt
+      player.velocityY = Math.max(
+        -24,
+        player.velocityY - 24 * dt
       );
 
-      const ok = shift('y', player.vy * dt);
+      const moved = moveAxis(
+        "y",
+        player.velocityY * dt
+      );
 
-      if (!ok) {
-        player.ground = player.vy <= 0;
-        player.vy = 0;
+      if (!moved) {
+        player.grounded = player.velocityY <= 0;
+        player.velocityY = 0;
       } else {
-        const p = camera.position.clone();
-        p.y -= .08;
-        player.ground = collision(p);
+        const below = camera.position.clone();
+        below.y -= .07;
+
+        player.grounded = collision(below);
       }
     }
 
-    if (camera.position.y < FLOOR - 6 || health <= 0) {
+    // Respawn.
+    if (
+      camera.position.y < LOWEST_Y - 8 ||
+      health <= 0
+    ) {
       camera.position.set(
-        0, height(0, 3) + 2.3, 3
+        0,
+        terrainHeight(0, 4) + 2.3,
+        4
       );
+
+      player.velocityY = 0;
       health = 100;
-      hunger = Math.max(50, hunger);
-      player.vy = 0;
-      notice('Respawned');
+      hunger = Math.max(hunger, 50);
+
+      notify("Respawned at spawn");
     }
 
-    const bx = Math.round(camera.position.x);
-    const by = Math.round(camera.position.y - 1.3);
-    const bz = Math.round(camera.position.z);
+    const px = Math.round(camera.position.x);
+    const py = Math.round(camera.position.y - 1.2);
+    const pz = Math.round(camera.position.z);
 
     if (
-      block(bx, by, bz) === 'lava' &&
-      !player.creative
+      getBlock(px, py, pz) === "lava" &&
+      !creative
     ) {
-      hazardTimer += dt;
+      damageTimer += dt;
 
-      if (hazardTimer > 1) {
-        health -= 12;
-        hazardTimer = 0;
-        notice('Lava burns!');
+      if (damageTimer >= 1) {
+        health = Math.max(0, health - 10);
+        damageTimer = 0;
+        notify("Lava damage!");
       }
     } else {
-      hazardTimer = 0;
+      damageTimer = 0;
     }
 
-    stream();
-    mobsTick(dt, t);
+    streamWorld();
 
-    attackLeft = Math.max(0, attackLeft - dt);
+    // Update villagers at a reduced frequency.
+    updateVillagers(dt);
 
-    foodTimer += dt;
-    if (foodTimer > 6) {
-      foodTimer = 0;
+    mineCooldown = Math.max(
+      0,
+      mineCooldown - dt
+    );
 
-      if (!player.creative) {
+    hungerTimer += dt;
+
+    if (hungerTimer >= 6) {
+      hungerTimer = 0;
+
+      if (!creative) {
         hunger = Math.max(0, hunger - 1);
+
         if (hunger === 0) {
-          health = Math.max(0, health - 2);
+          health = Math.max(0, health - 1);
         }
       }
     }
 
     saveTimer += dt;
 
-    if (saveTimer > 45) {
+    if (saveTimer >= 45) {
       saveTimer = 0;
       saveGame(true);
     }
 
-    $('coords').textContent =
+    $("coordinates").textContent =
       `XYZ ${Math.floor(camera.position.x)} ` +
       `${Math.floor(camera.position.y)} ` +
       `${Math.floor(camera.position.z)}`;
 
-    $('day').textContent = night ? '🌙 Night' : '☀ Day';
-    $('health').textContent = Math.ceil(health);
-    $('hunger').textContent = Math.ceil(hunger);
-    $('level').textContent = level;
+    $("health").textContent = Math.ceil(health);
+    $("hunger").textContent = Math.ceil(hunger);
+    $("level").textContent = level;
 
-    $('weapon').textContent =
-      `${ITEMS[equipped]?.[0] || 'Fists'}` +
-      `${player.creative ? ' · Creative' : ''}`;
+    $("gamemode").textContent =
+      creative ? "CREATIVE" : "SURVIVAL";
 
-    const item = hotItems[selected];
-    $('selected').textContent =
-      `${ITEMS[item][0]} (${inventory[item] || 0})`;
+    const item = hotbar[selected];
 
-    [...bar.children].forEach((el, i) => {
-      el.classList.toggle('active', i === selected);
-      el.querySelector('span').textContent =
-        ITEMS[hotItems[i]][1];
+    $("itemName").textContent =
+      `${ITEMS[item][0]} ` +
+      `(${inventory[item] || 0})`;
+
+    [...bar.children].forEach((slot, i) => {
+      slot.classList.toggle(
+        "selected",
+        i === selected
+      );
+
+      slot.querySelector("span").textContent =
+        ITEMS[hotbar[i]][1];
     });
-  }
-
-  if (noticeLeft > 0) {
-    noticeLeft -= dt;
-    if (noticeLeft <= 0) $('notice').textContent = '';
   }
 
   renderer.render(scene, camera);
 }
 
-frame();
+update();
 
-window.addEventListener('resize', () => {
+window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
+
   renderer.setSize(innerWidth, innerHeight);
 });
