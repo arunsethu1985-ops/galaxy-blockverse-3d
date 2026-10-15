@@ -1,58 +1,80 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width,initial-scale=1">
-  <title>GALAXY BLOCKVERSE — FAST</title>
+  <meta name="theme-color" content="#263e34">
+  <title>GALAXY BLOCKVERSE | Survival</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="menu" class="screen">
-    <h1>🌌 GALAXY BLOCKVERSE</h1>
-    <h2>FAST PIXEL SURVIVAL</h2>
-    <p>Explore, mine instantly, build, craft, cook and store items.</p>
-    <button id="play">▶ PLAY / RESUME</button>
-    <button id="reset">RESET WORLD</button>
-    <p class="hint">
-      WASD Move · Shift Sprint · Mouse Look · Space Jump
-      <br>
-      Left Click Mine/Attack · Right Click Place/Interact
-      <br>
-      E Inventory · C Craft · R Eat · 1–9 Blocks · Q Weapon
-      <br>
-      F Fly · G Creative · P Save · Esc Pause
+
+  <main id="menu">
+    <div class="logo">GALAXY</div>
+    <h1>BLOCKVERSE</h1>
+    <p class="subtitle">
+      A Single-Player Voxel Survival Adventure
     </p>
-  </div>
+
+    <button id="play" class="primary">
+      ▶ PLAY WORLD
+    </button>
+
+    <button id="reset" class="danger">
+      RESET SAVED WORLD
+    </button>
+
+    <div class="controls">
+      <h3>CONTROLS</h3>
+      <p>W A S D — Move</p>
+      <p>Mouse — Look around</p>
+      <p>Space — Jump</p>
+      <p>Shift — Sprint</p>
+      <p>Left Click — Mine / Attack</p>
+      <p>Right Click — Place / Interact</p>
+      <p>E — Inventory</p>
+      <p>C — Crafting</p>
+      <p>1–9 — Select hotbar item</p>
+      <p>V — Travel to village</p>
+      <p>F — Toggle flying</p>
+      <p>G — Toggle creative mode</p>
+      <p>P — Save world</p>
+      <p>Esc — Pause</p>
+    </div>
+  </main>
 
   <div id="hud" hidden>
-    <div id="top">
-      🌌 BLOCKVERSE
-      <span id="coords"></span>
-      <span id="day"></span>
-    </div>
-    <div id="stats">
+    <div id="coordinates">XYZ 0 0 0</div>
+
+    <div id="status">
       <span>❤️ <b id="health">100</b></span>
-      <span>🍗 <b id="hunger">100</b></span>
+      <span>🍖 <b id="hunger">100</b></span>
       <span>⭐ <b id="level">1</b></span>
-      <span id="weapon">Fists</span>
+      <span id="gamemode">SURVIVAL</span>
     </div>
+
     <div id="crosshair">+</div>
-    <div id="notice"></div>
+
+    <div id="message"></div>
+
     <div id="bottom">
       <div id="hotbar"></div>
-      <b id="selected"></b>
+      <div id="itemName"></div>
     </div>
   </div>
 
   <section id="panel" hidden>
-    <header>
-      <h2 id="panelTitle"></h2>
-      <button id="closePanel">CLOSE & RESUME</button>
+    <header class="panel-header">
+      <h2 id="panelTitle">INVENTORY</h2>
+      <button id="closePanel">
+        ✕ CLOSE & RESUME
+      </button>
     </header>
-    <p id="panelHelp"></p>
-    <div id="panelContent"></div>
+
+    <p id="panelDescription"></p>
+    <div id="panelItems"></div>
   </section>
 
   <script type="module" src="script.js"></script>
