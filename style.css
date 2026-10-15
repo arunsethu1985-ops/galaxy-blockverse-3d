@@ -3,23 +3,25 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
-  width: 100%;
   height: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
 body {
-  background: #152b3e;
-  color: #fff;
-  font: 15px Arial, sans-serif;
+  background: #152c3b;
+  color: white;
+  font-family: Arial, sans-serif;
 }
 
 canvas {
-  display: block;
   position: fixed;
   inset: 0;
+  display: block;
+  z-index: 0;
 }
 
 [hidden] {
@@ -27,17 +29,19 @@ canvas {
 }
 
 button {
-  border: 2px solid #244b28;
-  background: #62ab4c;
-  color: white;
-  font-weight: bold;
-  border-radius: 4px;
-  padding: 11px 16px;
   cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  color: white;
+  border: 2px solid #243624;
+  background: #65894b;
+  padding: 12px 17px;
+  border-radius: 3px;
+  box-shadow: inset 0 -4px #3c6035;
 }
 
 button:hover {
-  filter: brightness(1.15);
+  filter: brightness(1.13);
 }
 
 button:disabled {
@@ -45,71 +49,106 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.screen {
+#menu {
   position: fixed;
   inset: 0;
-  z-index: 10;
-  background: linear-gradient(140deg,#102339f5,#194d35f5);
+  z-index: 20;
+  overflow: auto;
   display: flex;
   align-items: center;
-  justify-content: center;
   flex-direction: column;
-  padding: 25px;
-  text-align: center;
+  justify-content: center;
   gap: 12px;
+  text-align: center;
+  padding: 25px;
+  background: linear-gradient(
+    145deg,
+    rgba(15,34,46,.97),
+    rgba(26,65,42,.97)
+  );
 }
 
-.screen h1 {
+.logo {
+  font-size: 23px;
+  color: #b4e5ff;
+  letter-spacing: 9px;
+  font-weight: bold;
+}
+
+#menu h1 {
+  font-size: clamp(34px,7vw,72px);
   margin: 0;
-  font-size: clamp(28px,5vw,58px);
-  color: #a3ef80;
+  color: #a5e67c;
+  text-shadow: 5px 5px #244429;
 }
 
-.screen h2 {
-  margin: 0;
-  letter-spacing: 3px;
-  color: #ffd988;
+.subtitle {
+  color: #d4e4d5;
+  margin: 3px 0 20px;
 }
 
-.hint {
-  font-size: 13px;
-  line-height: 2;
-  opacity: .8;
+.primary {
+  min-width: 220px;
+  background: #69af48;
 }
 
-#reset {
-  background: #a24848;
-  border-color: #743030;
+.danger {
+  min-width: 220px;
+  background: #994949;
+  box-shadow: inset 0 -4px #642c2c;
+  border-color: #5f2828;
+}
+
+.controls {
+  margin-top: 20px;
+  padding: 14px 24px;
+  max-height: 32vh;
+  overflow: auto;
+  background: rgba(0,0,0,.2);
+  border: 1px solid #72887e;
+}
+
+.controls h3 {
+  color: #f4d793;
+  margin: 0 0 10px;
+}
+
+.controls p {
+  margin: 5px;
+  font-size: 12px;
 }
 
 #hud {
-  z-index: 2;
   position: fixed;
   inset: 0;
+  z-index: 5;
   pointer-events: none;
 }
 
-#top, #stats {
+#coordinates,
+#status {
   position: absolute;
   left: 12px;
-  background: #0009;
-  border: 1px solid #fff5;
-  border-radius: 5px;
-  padding: 10px;
+  background: rgba(0,0,0,.68);
+  border: 1px solid #ffffff55;
+  padding: 10px 12px;
 }
 
-#top {
+#coordinates {
   top: 12px;
+  font-family: monospace;
+}
+
+#status {
+  top: 55px;
   display: flex;
-  gap: 12px;
+  gap: 15px;
   flex-wrap: wrap;
 }
 
-#stats {
-  top: 60px;
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+#gamemode {
+  color: #d8e8a2;
+  font-weight: bold;
 }
 
 #crosshair {
@@ -117,18 +156,18 @@ button:disabled {
   left: 50%;
   top: 50%;
   transform: translate(-50%,-50%);
-  font: bold 32px monospace;
-  text-shadow: 1px 1px 4px black;
+  font: bold 34px monospace;
+  text-shadow: 1px 1px 3px black;
 }
 
-#notice {
+#message {
   position: absolute;
   top: 58%;
   left: 50%;
   transform: translateX(-50%);
-  text-shadow: 2px 2px black;
-  font-weight: bold;
   text-align: center;
+  font-weight: 800;
+  text-shadow: 2px 2px 3px black;
 }
 
 #bottom {
@@ -139,135 +178,135 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 
 #hotbar {
-  display: flex;
-  gap: 4px;
-  background: #000b;
   padding: 5px;
-  border: 2px solid #bbb;
+  border: 3px solid #888;
+  background: #101417d9;
+  display: flex;
+  gap: 3px;
 }
 
 .slot {
-  width: 47px;
-  height: 47px;
-  background: #343b40;
-  border: 2px solid #707578;
+  position: relative;
+  width: 49px;
+  height: 49px;
+  background: #414747;
+  border: 2px solid #666;
   display: grid;
   place-items: center;
-  font-size: 24px;
-  position: relative;
+  font-size: 25px;
 }
 
-.slot.active {
+.slot.selected {
   border: 3px solid white;
-  background: #5c7358;
+  background: #677b61;
 }
 
 .slot small {
-  font-size: 10px;
   position: absolute;
   right: 2px;
   bottom: 1px;
+  font-size: 10px;
 }
 
-#selected {
+#itemName {
+  font-weight: bold;
   text-shadow: 2px 2px black;
 }
 
 #panel {
   position: fixed;
-  z-index: 20;
+  z-index: 30;
   top: 50%;
   left: 50%;
   transform: translate(-50%,-50%);
-  width: min(700px,95vw);
-  max-height: 85vh;
-  overflow: auto;
-  background: #2b3234;
-  border: 4px solid #8c9899;
+  width: min(730px,96vw);
+  max-height: 88vh;
   padding: 18px;
-  box-shadow: 0 12px 60px #000b;
+  overflow-y: auto;
+  background: #293237;
+  border: 4px solid #7c9089;
+  box-shadow: 0 12px 50px #000c;
 }
 
-#panel header {
+.panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
 }
 
-#panel h2 {
+.panel-header h2 {
   margin: 0;
-  color: #d7f3b5;
+  color: #d3edaf;
 }
 
-#panelHelp {
-  color: #bdc8c9;
+#panelDescription {
+  color: #c3d0cc;
   font-size: 13px;
 }
 
-#panelContent {
+#panelItems {
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
 
-.entry {
-  background: #414b4c;
-  border: 1px solid #687777;
-  padding: 9px;
+.item-row {
+  background: #3c4849;
+  border: 1px solid #667675;
+  padding: 10px;
   display: flex;
-  gap: 8px;
   align-items: center;
+  gap: 8px;
 }
 
-.entry .info {
+.item-info {
   flex: 1;
   min-width: 0;
 }
 
-.entry strong, .entry small {
+.item-info strong,
+.item-info small {
   display: block;
 }
 
-.entry small {
-  color: #c0cdcd;
-  margin-top: 4px;
+.item-info small {
+  margin-top: 5px;
+  color: #c3cece;
 }
 
-.entry button {
+.item-row button {
+  padding: 9px 12px;
   font-size: 12px;
-  padding: 8px;
 }
 
-@media (max-width: 590px) {
+@media (max-width: 600px) {
   .slot {
     width: 34px;
-    height: 37px;
+    height: 38px;
     font-size: 18px;
   }
 
-  #top, #stats {
+  #coordinates,
+  #status {
     font-size: 11px;
   }
 
-  #stats {
-    top: 72px;
+  #status {
+    top: 50px;
+    gap: 8px;
   }
 
-  .entry {
+  .item-row {
     flex-wrap: wrap;
   }
 
-  .entry .info {
+  .item-info {
     flex-basis: 100%;
-  }
-
-  .hint {
-    font-size: 11px;
   }
 }
