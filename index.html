@@ -4,21 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#142632">
-
-  <title>GALAXY BLOCKVERSE — Physics Edition</title>
-
+  <meta name="theme-color" content="#122c39">
+  <title>GALAXY BLOCKVERSE — Living World Edition</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <main id="menu">
-    <div class="logo">✦ GALAXY ✦</div>
+  <div id="menu">
+    <div class="brand">✦ GALAXY ✦</div>
     <h1>BLOCKVERSE</h1>
-    <h2>PHYSICS & CHEMISTRY EDITION</h2>
+    <h2>LIVING WORLD EDITION</h2>
 
-    <p class="subtitle">
-      Explore • Build • Experiment • Survive
+    <p class="tagline">
+      Explore • Build • Farm • Ride • Survive
     </p>
 
     <button id="play" class="primary">
@@ -31,80 +29,49 @@
 
     <section class="controls">
       <h3>GAME CONTROLS</h3>
-
-      <p>
-        <strong>W A S D</strong> — Move
-        <span>•</span>
-        <strong>Mouse</strong> — Look
-      </p>
-
-      <p>
-        <strong>Space</strong> — Jump
-        <span>•</span>
-        <strong>Ctrl</strong> — Sprint
-      </p>
-
-      <p>
-        <strong>Left Click</strong> — Mine / Attack
-        <span>•</span>
-        <strong>Right Click</strong> — Place / Use
-      </p>
-
-      <p>
-        <strong>1–9</strong> — Hotbar
-        <span>•</span>
-        <strong>E</strong> — Inventory
-        <span>•</span>
-        <strong>C</strong> — Crafting
-      </p>
-
-      <p>
-        <strong>H</strong> — Chemistry Lab
-        <span>•</span>
-        <strong>R</strong> — Eat
-        <span>•</span>
-        <strong>P</strong> — Save
-      </p>
-
-      <p>
-        <strong>G</strong> — Creative Mode
-        <span>•</span>
-        <strong>F</strong> — Fly
-        <span>•</span>
-        <strong>X</strong> — Fly Down
-      </p>
-
-      <p>
-        <strong>V</strong> — Visit Village
-        <span>•</span>
-        <strong>Esc</strong> — Pause
-      </p>
+      <p><b>WASD</b> Move / Ride · <b>Mouse</b> Look</p>
+      <p><b>Space</b> Jump · <b>Ctrl</b> Sprint</p>
+      <p><b>Shift</b> Sneak / Dismount</p>
+      <p><b>F5</b> Switch Camera View</p>
+      <p><b>Left Click</b> Mine / Harvest / Attack</p>
+      <p><b>Right Click</b> Place / Plant / Interact / Ride</p>
+      <p><b>1–9</b> Select Hotbar Slot</p>
+      <p><b>E</b> Inventory · <b>C</b> Crafting</p>
+      <p><b>H</b> Chemistry · <b>R</b> Eat</p>
+      <p><b>G</b> Creative · <b>F</b> Fly · <b>X</b> Fly Down</p>
+      <p><b>V</b> Visit Village · <b>P</b> Save</p>
+      <p><b>Esc</b> Pause</p>
     </section>
 
-    <p class="disclaimer">
-      Original Minecraft-inspired voxel sandbox.
-      Chemistry uses educational game recipes.
-      No AI API key is required.
+    <p class="note">
+      Original procedural voxel sandbox.
+      Local pixel-art characters.
+      Saved-world compatibility is best-effort.
     </p>
-  </main>
+  </div>
 
   <div id="hud" hidden>
-    <section id="top">
+    <div id="top">
       <strong>✦ GALAXY BLOCKVERSE</strong>
       <div id="coords">XYZ 0 0 0</div>
       <div id="biome">Plains</div>
       <div id="fps">FPS --</div>
       <div id="chunks">Chunks 0</div>
-      <div id="timeOfDay">Day</div>
-    </section>
+      <div id="viewLabel">First Person</div>
+    </div>
 
-    <section id="stats">
+    <div id="stats">
       ❤️ <span id="health">20</span>
-      <span class="divider">|</span>
+      <span class="separator">|</span>
       🍗 <span id="food">20</span>
-      <span class="divider">|</span>
+      <span class="separator">|</span>
       <span id="mode">SURVIVAL</span>
-    </section>
+    </div>
+
+    <div id="rideStatus" hidden>
+      <strong id="rideName">Riding Horse</strong>
+      <span>WASD · Space Jump · Shift Dismount</span>
+    </div>
 
     <div id="crosshair">+</div>
     <div id="targetName"></div>
@@ -119,7 +86,7 @@
   <section id="panel" hidden>
     <header>
       <h2 id="panelTitle">Inventory</h2>
-      <button id="close">CLOSE</button>
+      <button id="close">CLOSE & RESUME</button>
     </header>
 
     <p id="help"></p>
