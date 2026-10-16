@@ -1,21 +1,24 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport"
-        content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#263e34">
-  <title>GALAXY BLOCKVERSE | Survival</title>
+        content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#142632">
+
+  <title>GALAXY BLOCKVERSE — Physics Edition</title>
+
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
 
+<body>
   <main id="menu">
-    <div class="logo">GALAXY</div>
+    <div class="logo">✦ GALAXY ✦</div>
     <h1>BLOCKVERSE</h1>
+    <h2>PHYSICS & CHEMISTRY EDITION</h2>
+
     <p class="subtitle">
-      A Single-Player Voxel Survival Adventure
+      Explore • Build • Experiment • Survive
     </p>
 
     <button id="play" class="primary">
@@ -26,55 +29,101 @@
       RESET SAVED WORLD
     </button>
 
-    <div class="controls">
-      <h3>CONTROLS</h3>
-      <p>W A S D — Move</p>
-      <p>Mouse — Look around</p>
-      <p>Space — Jump</p>
-      <p>Shift — Sprint</p>
-      <p>Left Click — Mine / Attack</p>
-      <p>Right Click — Place / Interact</p>
-      <p>E — Inventory</p>
-      <p>C — Crafting</p>
-      <p>1–9 — Select hotbar item</p>
-      <p>V — Travel to village</p>
-      <p>F — Toggle flying</p>
-      <p>G — Toggle creative mode</p>
-      <p>P — Save world</p>
-      <p>Esc — Pause</p>
-    </div>
+    <section class="controls">
+      <h3>GAME CONTROLS</h3>
+
+      <p>
+        <strong>W A S D</strong> — Move
+        <span>•</span>
+        <strong>Mouse</strong> — Look
+      </p>
+
+      <p>
+        <strong>Space</strong> — Jump
+        <span>•</span>
+        <strong>Ctrl</strong> — Sprint
+      </p>
+
+      <p>
+        <strong>Left Click</strong> — Mine / Attack
+        <span>•</span>
+        <strong>Right Click</strong> — Place / Use
+      </p>
+
+      <p>
+        <strong>1–9</strong> — Hotbar
+        <span>•</span>
+        <strong>E</strong> — Inventory
+        <span>•</span>
+        <strong>C</strong> — Crafting
+      </p>
+
+      <p>
+        <strong>H</strong> — Chemistry Lab
+        <span>•</span>
+        <strong>R</strong> — Eat
+        <span>•</span>
+        <strong>P</strong> — Save
+      </p>
+
+      <p>
+        <strong>G</strong> — Creative Mode
+        <span>•</span>
+        <strong>F</strong> — Fly
+        <span>•</span>
+        <strong>X</strong> — Fly Down
+      </p>
+
+      <p>
+        <strong>V</strong> — Visit Village
+        <span>•</span>
+        <strong>Esc</strong> — Pause
+      </p>
+    </section>
+
+    <p class="disclaimer">
+      Original Minecraft-inspired voxel sandbox.
+      Chemistry uses educational game recipes.
+      No AI API key is required.
+    </p>
   </main>
 
   <div id="hud" hidden>
-    <div id="coordinates">XYZ 0 0 0</div>
+    <section id="top">
+      <strong>✦ GALAXY BLOCKVERSE</strong>
+      <div id="coords">XYZ 0 0 0</div>
+      <div id="biome">Plains</div>
+      <div id="fps">FPS --</div>
+      <div id="chunks">Chunks 0</div>
+      <div id="timeOfDay">Day</div>
+    </section>
 
-    <div id="status">
-      <span>❤️ <b id="health">100</b></span>
-      <span>🍖 <b id="hunger">100</b></span>
-      <span>⭐ <b id="level">1</b></span>
-      <span id="gamemode">SURVIVAL</span>
-    </div>
+    <section id="stats">
+      ❤️ <span id="health">20</span>
+      <span class="divider">|</span>
+      🍗 <span id="food">20</span>
+      <span class="divider">|</span>
+      <span id="mode">SURVIVAL</span>
+    </section>
 
     <div id="crosshair">+</div>
-
-    <div id="message"></div>
+    <div id="targetName"></div>
+    <div id="notice"></div>
 
     <div id="bottom">
       <div id="hotbar"></div>
-      <div id="itemName"></div>
+      <strong id="selection">Grass</strong>
     </div>
   </div>
 
   <section id="panel" hidden>
-    <header class="panel-header">
-      <h2 id="panelTitle">INVENTORY</h2>
-      <button id="closePanel">
-        ✕ CLOSE & RESUME
-      </button>
+    <header>
+      <h2 id="panelTitle">Inventory</h2>
+      <button id="close">CLOSE</button>
     </header>
 
-    <p id="panelDescription"></p>
-    <div id="panelItems"></div>
+    <p id="help"></p>
+    <div id="entries"></div>
   </section>
 
   <script type="module" src="script.js"></script>
