@@ -1,17 +1,14 @@
-/* ==========================================
-   GALAXY BLOCKVERSE
-   PHYSICS & CHEMISTRY EDITION
-   ========================================== */
+/* GALAXY BLOCKVERSE — LIVING WORLD EDITION */
 
 :root {
-  --background: #142633;
-  --panel: #293b40;
-  --panel-light: #405451;
-  --border: #879e92;
-  --green: #77af55;
-  --green-dark: #3e6937;
-  --cream: #f4e3b4;
-  --text: #ffffff;
+  --bg: #142935;
+  --panel: #283b40;
+  --panel-light: #3d514d;
+  --border: #91a499;
+  --green: #75b153;
+  --green-dark: #395e34;
+  --cream: #ffe3a6;
+  --white: #ffffff;
 }
 
 * {
@@ -20,17 +17,18 @@
 
 html,
 body {
+  margin: 0;
+  padding: 0;
   width: 100%;
   height: 100%;
-  padding: 0;
-  margin: 0;
   overflow: hidden;
 }
 
 body {
-  background: var(--background);
-  color: var(--text);
+  background: var(--bg);
+  color: var(--white);
   font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
   user-select: none;
 }
 
@@ -42,8 +40,6 @@ canvas {
 [hidden] {
   display: none !important;
 }
-
-/* BUTTONS */
 
 button {
   appearance: none;
@@ -57,21 +53,13 @@ button {
   font-family: inherit;
   font-size: 13px;
   font-weight: 800;
-
   cursor: pointer;
-  box-shadow: inset 0 -3px #36582e;
 
-  transition:
-    filter .15s ease,
-    transform .1s ease;
+  box-shadow: inset 0 -3px #31552d;
 }
 
 button:hover {
-  filter: brightness(1.14);
-}
-
-button:active {
-  transform: translateY(1px);
+  filter: brightness(1.12);
 }
 
 button:disabled {
@@ -79,14 +67,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button.danger,
 .danger {
-  background: #a64e4e;
-  border-color: #683131;
-  box-shadow: inset 0 -3px #713434;
+  background: #a54b4b;
+  border-color: #713737;
+  box-shadow: inset 0 -3px #703333;
 }
 
-/* START MENU */
+/* MAIN MENU */
 
 #menu {
   position: fixed;
@@ -95,105 +82,94 @@ button.danger,
 
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
 
   gap: 12px;
-  padding: 24px;
-  overflow-y: auto;
+  padding: 20px;
 
   text-align: center;
+  overflow-y: auto;
 
   background:
     radial-gradient(
-      circle at 50% 25%,
-      #396d55 0%,
-      transparent 52%
+      circle at 50% 28%,
+      #366c4c 0%,
+      transparent 53%
     ),
     linear-gradient(
-      135deg,
-      #101f32,
-      #20382c
+      130deg,
+      #152a40,
+      #213b2a
     );
 }
 
-.logo {
-  font-size: 22px;
+.brand {
+  font-size: 24px;
   font-weight: 900;
   letter-spacing: 7px;
-  color: #bddfff;
+  color: #c5e7ff;
 }
 
 #menu h1 {
   margin: 0;
-
-  font-size: clamp(35px, 7vw, 76px);
-  line-height: 1.05;
+  font-size: clamp(36px, 7vw, 75px);
   font-weight: 900;
-
-  color: #b5ee8a;
+  color: #b4ee8c;
 
   text-shadow:
-    4px 4px #34532f,
-    7px 7px #182b21;
+    4px 4px #31552f,
+    7px 7px #172d20;
 }
 
 #menu h2 {
   margin: 0;
-  font-size: 16px;
-  letter-spacing: 3px;
   color: var(--cream);
+  letter-spacing: 4px;
 }
 
-.subtitle {
-  margin: 6px 0;
-  color: #d6e5dc;
+.tagline {
   letter-spacing: 1.5px;
+  color: #e1ebdf;
 }
 
 #menu .primary,
 #menu .danger {
-  min-width: 230px;
-  min-height: 45px;
+  min-width: 245px;
+  min-height: 44px;
 }
 
 .controls {
-  width: min(700px, 96vw);
-  margin-top: 8px;
-  padding: 12px;
+  width: min(660px, 96vw);
+  padding: 12px 18px;
+  margin-top: 5px;
 
-  background: #08151bc7;
-  border: 2px solid #638275;
-
-  line-height: 1.7;
+  background: #09161bce;
+  border: 2px solid #6a8b77;
 }
 
 .controls h3 {
-  margin: 0 0 8px;
-  color: #ffe2a5;
+  margin: 0 0 12px;
+  color: var(--cream);
   letter-spacing: 2px;
 }
 
 .controls p {
-  margin: 5px 0;
+  margin: 6px 0;
+  line-height: 1.45;
 }
 
-.controls strong {
-  color: #d0f7bd;
+.controls b {
+  color: #c3efb5;
 }
 
-.controls span {
-  color: #93aca0;
-  margin: 0 5px;
-}
-
-.disclaimer {
-  max-width: 650px;
-  color: #bbd0c6;
+.note {
+  max-width: 620px;
+  color: #b7d0c2;
   font-size: 11px;
 }
 
-/* HUD */
+/* GAME HUD */
 
 #hud {
   position: fixed;
@@ -203,14 +179,13 @@ button.danger,
 }
 
 #top,
-#stats {
+#stats,
+#rideStatus {
   position: absolute;
-  left: 12px;
-
   padding: 10px 12px;
 
-  background: #07130ccc;
-  border: 1px solid #ffffff55;
+  background: #07140cd6;
+  border: 1px solid #ffffff66;
 
   font-family: monospace;
   text-shadow: 1px 1px 3px black;
@@ -218,28 +193,26 @@ button.danger,
 
 #top {
   top: 12px;
-  line-height: 1.7;
-  min-width: 170px;
+  left: 12px;
+  min-width: 177px;
+  line-height: 1.65;
 }
 
 #top strong {
-  color: #b8eda2;
+  color: #b9efa2;
 }
 
 #fps {
-  color: #b7f4bd;
+  color: #bdf3c4;
 }
 
-#chunks {
-  color: #c7d3d2;
-}
-
-#timeOfDay {
-  color: #ffe1a5;
+#viewLabel {
+  color: var(--cream);
 }
 
 #stats {
-  top: 163px;
+  top: 175px;
+  left: 12px;
 
   display: flex;
   align-items: center;
@@ -247,12 +220,37 @@ button.danger,
 }
 
 #mode {
-  color: #ffdc95;
+  color: var(--cream);
   font-weight: bold;
 }
 
-.divider {
+.separator {
   opacity: .5;
+}
+
+/* RIDING STATUS */
+
+#rideStatus {
+  top: 12px;
+  right: 12px;
+  left: auto;
+
+  min-width: 235px;
+  text-align: center;
+
+  border: 2px solid #d5b472;
+}
+
+#rideStatus strong {
+  display: block;
+  margin-bottom: 7px;
+
+  color: var(--cream);
+  font-size: 15px;
+}
+
+#rideStatus span {
+  font-size: 11px;
 }
 
 /* CROSSHAIR */
@@ -264,7 +262,7 @@ button.danger,
 
   transform: translate(-50%, -50%);
 
-  font: 900 32px monospace;
+  font: 900 33px monospace;
   color: white;
 
   text-shadow:
@@ -275,30 +273,30 @@ button.danger,
 
 #targetName {
   position: absolute;
-  top: calc(50% + 28px);
+  top: calc(50% + 29px);
   left: 50%;
 
   transform: translateX(-50%);
+
+  max-width: 90vw;
+  white-space: nowrap;
 
   font-size: 12px;
   font-weight: bold;
   text-shadow: 2px 2px 3px black;
-
-  white-space: nowrap;
 }
 
 #notice {
   position: absolute;
-  top: 61%;
   left: 50%;
+  top: 60%;
 
   transform: translateX(-50%);
 
-  width: max-content;
   max-width: 90vw;
-
   text-align: center;
-  font-size: 15px;
+
+  font-size: 16px;
   font-weight: bold;
 
   text-shadow:
@@ -326,9 +324,8 @@ button.danger,
   gap: 3px;
   padding: 5px;
 
-  background: #0e1819e8;
-  border: 3px solid #9ea89f;
-
+  background: #0d1819e8;
+  border: 3px solid #a0aa9e;
   box-shadow: 0 5px 15px #0009;
 }
 
@@ -341,16 +338,15 @@ button.danger,
   display: grid;
   place-items: center;
 
-  background: #41504d;
-  border: 2px solid #768a7c;
+  background: #40544c;
+  border: 2px solid #788b78;
 
-  font-size: 23px;
+  font-size: 22px;
 }
 
 .slot.active {
-  background: #68875d;
+  background: #698b60;
   border: 3px solid white;
-  box-shadow: inset 0 0 8px #c8ffc266;
 }
 
 .slot.empty {
@@ -362,19 +358,18 @@ button.danger,
   right: 3px;
   bottom: 1px;
 
-  font-size: 10px;
-  font-family: monospace;
+  font: 10px monospace;
   color: white;
 
   text-shadow: 1px 1px black;
 }
 
 #selection {
-  text-shadow: 2px 2px black;
   font-size: 13px;
+  text-shadow: 2px 2px black;
 }
 
-/* INVENTORY PANELS */
+/* INVENTORY / CRAFTING */
 
 #panel {
   position: fixed;
@@ -382,13 +377,12 @@ button.danger,
 
   left: 50%;
   top: 50%;
-
   transform: translate(-50%, -50%);
 
   width: min(760px, 96vw);
   max-height: 88vh;
 
-  padding: 17px;
+  padding: 18px;
   overflow-y: auto;
 
   background: var(--panel);
@@ -401,18 +395,18 @@ button.danger,
   justify-content: space-between;
   align-items: center;
 
-  flex-wrap: wrap;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 #panel h2 {
   margin: 0;
-  color: #c7eaa9;
+  color: #c8e9a9;
 }
 
 #help {
+  color: #cedccf;
   line-height: 1.5;
-  color: #c5d8cb;
 }
 
 #entries {
@@ -429,7 +423,7 @@ button.danger,
   padding: 10px;
 
   background: var(--panel-light);
-  border: 1px solid #71867b;
+  border: 1px solid #748778;
 }
 
 .entry .info {
@@ -442,16 +436,11 @@ button.danger,
   display: block;
 }
 
-.entry strong {
-  color: #fff;
-}
-
 .entry small {
   margin-top: 5px;
-
-  font-size: 12px;
-  line-height: 1.4;
   color: #d1dfd5;
+  line-height: 1.4;
+  font-size: 12px;
 }
 
 .entry button {
@@ -459,21 +448,7 @@ button.danger,
   font-size: 12px;
 }
 
-/* SCROLLBARS */
-
-#panel::-webkit-scrollbar {
-  width: 9px;
-}
-
-#panel::-webkit-scrollbar-thumb {
-  background: #6d8d78;
-}
-
-#panel::-webkit-scrollbar-track {
-  background: #182b2e;
-}
-
-/* MOBILE / SMALL WINDOWS */
+/* RESPONSIVE */
 
 @media (max-width: 600px) {
   #top {
@@ -481,14 +456,20 @@ button.danger,
     left: 7px;
     padding: 7px;
     font-size: 11px;
-    min-width: 135px;
   }
 
   #stats {
-    top: 139px;
+    top: 147px;
     left: 7px;
     padding: 7px;
     font-size: 11px;
+  }
+
+  #rideStatus {
+    top: auto;
+    bottom: 108px;
+    right: 50%;
+    transform: translateX(50%);
   }
 
   .slot {
@@ -519,14 +500,10 @@ button.danger,
   }
 
   #menu h1 {
-    font-size: 36px;
+    font-size: 35px;
   }
 
   #menu h2 {
-    font-size: 12px;
-  }
-
-  .controls {
     font-size: 12px;
   }
 }
