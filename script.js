@@ -1,31 +1,184 @@
-
 import * as THREE from "https://esm.sh/three@0.180.0";
 
-// GALAXY BLOCKVERSE
-// Original single-player voxel game.
-// This is NOT the complete Minecraft game.
+/*
+ GALAXY BLOCKVERSE
+ Physics & Chemistry Edition
+
+ Original procedural voxel game.
+ No external AI API required.
+*/
 
 const $ = id => document.getElementById(id);
+const SAVE = "galaxy-blockverse-three-files-v1";
 
-const SAVE = "galaxy-blockverse-water-village-v1";
-const CHUNK = 12;
+const SIZE = 12;
 const VIEW = 1;
-const LOWEST_Y = -48;
-const WATER_LEVEL = 0;
+const MIN_Y = -48;
+const MAX_Y = 60;
+const REACH = 6;
 
-// ---------------------------------------
-// THREE.JS SETUP
-// ---------------------------------------
+const B = Object.freeze({
+  AIR: 0,
+  GRASS: 1,
+  DIRT: 2,
+  STONE: 3,
+  SAND: 4,
+  WOOD: 5,
+  LEAVES: 6,
+  BEDROCK: 7,
+  ICE: 8,
+  WATER: 9,
+  CACTUS: 10,
+  PLANKS: 11,
+  GLASS: 12,
+  CHEST: 13,
+  FURNACE: 14,
+  FARMLAND: 15,
+  CROPS: 16,
+  COAL: 17,
+  IRON: 18,
+  GOLD: 19,
+  DIAMOND: 20,
+  LAVA: 21,
+
+  GRAVEL: 22,
+  COBBLE: 23,
+  OBSIDIAN: 24,
+  TNT: 25,
+  FIRE: 26,
+  BRICKS: 27,
+  SNOW: 28,
+  CLAY: 29,
+  COPPER: 30,
+  LAB: 31
+});
+
+const ITEMS = [
+  ["Air", "▫️"],
+  ["Grass", "🟩"],
+  ["Dirt", "🟫"],
+  ["Stone", "🪨"],
+  ["Sand", "🏖️"],
+  ["Oak Wood", "🪵"],
+  ["Leaves", "🍃"],
+  ["Bedrock", "⬛"],
+  ["Ice", "🧊"],
+  ["Water", "💧"],
+  ["Cactus", "🌵"],
+  ["Oak Planks", "🪵"],
+  ["Glass", "🪟"],
+  ["Chest", "📦"],
+  ["Furnace", "🔥"],
+  ["Farmland", "🟤"],
+  ["Crops", "🌾"],
+  ["Coal Ore", "⚫"],
+  ["Iron Ore", "🔩"],
+  ["Gold Ore", "🟨"],
+  ["Diamond Ore", "💎"],
+  ["Lava", "🌋"],
+  ["Gravel", "🪨"],
+  ["Cobblestone", "🪨"],
+  ["Obsidian", "⬛"],
+  ["TNT", "🧨"],
+  ["Fire", "🔥"],
+  ["Bricks", "🧱"],
+  ["Snow", "❄️"],
+  ["Clay", "🟫"],
+  ["Copper Ore", "🟠"],
+  ["Chemistry Lab", "⚗️"]
+];
+
+const OTHER = {
+  bucket: ["Empty Bucket", "🪣"],
+  water_bucket: ["Water Bucket", "💧"],
+  lava_bucket: ["Lava Bucket", "🌋"],
+  seeds: ["Seeds", "🌱"],
+  wheat: ["Wheat", "🌾"],
+  meat: ["Raw Meat", "🥩"],
+  cooked: ["Cooked Meat", "🍖"],
+  emerald: ["Emerald", "💚"],
+  iron_ingot: ["Iron Ingot", "🔩"],
+  gold_ingot: ["Gold Ingot", "🟨"],
+  copper_ingot: ["Copper Ingot", "🟠"],
+  hydrogen: ["Hydrogen", "H"],
+  oxygen: ["Oxygen", "O"],
+  carbon: ["Carbon", "C"],
+  sodium: ["Sodium", "Na"],
+  chlorine: ["Chlorine", "Cl"],
+  nitrogen: ["Nitrogen", "N"],
+  water_compound: ["H₂O Compound", "💧"],
+  salt: ["Sodium Chloride", "🧂"],
+  carbon_dioxide: ["Carbon Dioxide", "CO₂"],
+  ammonia: ["Ammonia", "NH₃"]
+};
+
+const RECIPE = [
+  [B.PLANKS, 4, {[B.WOOD]: 1}],
+  [B.CHEST, 1, {[B.PLANKS]: 8}],
+  [B.FURNACE, 1, {[B.COBBLE]: 8}],
+  [B.FARMLAND, 4, {[B.DIRT]: 4}],
+  [B.BRICKS, 4, {[B.CLAY]: 4}],
+  [B.TNT, 1, {[B.SAND]: 4, [B.COAL]: 3}],
+  [B.LAB, 1, {[B.GLASS]: 4, [B.IRON]: 2}],
+  ["bucket", 1, {iron_ingot: 3}]
+];
+
+const CHEMISTRY = [
+  ["water_compound", 1, {hydrogen: 2, oxygen: 1}],
+  ["salt", 1, {sodium: 1, chlorine: 1}],
+  ["carbon_dioxide", 1, {carbon: 1, oxygen: 2}],
+  ["ammonia", 1, {nitrogen: 1, hydrogen: 3}]
+];
+
+const SMELTING = [
+  ["iron_ingot", 1, {[B.IRON]: 1, [B.COAL]: 1}],
+  ["gold_ingot", 1, {[B.GOLD]: 1, [B.COAL]: 1}],
+  ["copper_ingot", 1, {[B.COPPER]: 1, [B.COAL]: 1}],
+  [B.GLASS, 1, {[B.SAND]: 1, [B.COAL]: 1}],
+  [B.STONE, 1, {[B.COBBLE]: 1, [B.COAL]: 1}],
+  ["cooked", 1, {meat: 1, [B.COAL]: 1}]
+];
+
+const NAME = id =>
+  typeof id === "number"
+    ? ITEMS[id]?.[0] || "Unknown"
+    : OTHER[id]?.[0] || id;
+
+const ICON = id =>
+  typeof id === "number"
+    ? ITEMS[id]?.[1] || "▫️"
+    : OTHER[id]?.[1] || "▫️";
+
+function solid(id) {
+  return ![
+    B.AIR,
+    B.WATER,
+    B.LAVA,
+    B.FIRE,
+    B.LEAVES,
+    B.CROPS
+  ].includes(id);
+}
+
+function itemId(id) {
+  return /^\d+$/.test(String(id))
+    ? Number(id)
+    : id;
+}
+
+/* =========================================
+   SCENE
+========================================= */
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x91cfff);
-scene.fog = new THREE.Fog(0x91cfff, 22, 70);
+scene.background = new THREE.Color(0x90c9ee);
+scene.fog = new THREE.Fog(0x90c9ee, 25, 68);
 
 const camera = new THREE.PerspectiveCamera(
   75,
   innerWidth / innerHeight,
-  0.05,
-  110
+  .05,
+  120
 );
 camera.rotation.order = "YXZ";
 
@@ -35,600 +188,275 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(
-  Math.min(devicePixelRatio, 1.25)
-);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-
 document.body.appendChild(renderer.domElement);
 
-scene.add(
-  new THREE.HemisphereLight(
-    0xdfefff,
-    0x657344,
-    2
-  )
+const ambient = new THREE.HemisphereLight(
+  0xeaf5ff,
+  0x54644b,
+  1.6
 );
+scene.add(ambient);
 
-const sunlight = new THREE.DirectionalLight(
-  0xffeed0,
-  1.3
+const sun = new THREE.DirectionalLight(
+  0xffe7b5,
+  1.5
 );
-sunlight.position.set(30, 50, 25);
-scene.add(sunlight);
+sun.position.set(25, 55, 18);
+scene.add(sun);
 
-// ---------------------------------------
-// ITEMS
-// ---------------------------------------
+/* =========================================
+   SAVING AND INVENTORY
+========================================= */
 
-const ITEMS = {
-  grass: ["Grass Block", "🟩"],
-  dirt: ["Dirt", "🟫"],
-  stone: ["Stone", "🪨"],
-  sand: ["Sand", "🏖️"],
-  wood: ["Wood", "🪵"],
-  leaves: ["Leaves", "🍃"],
-  planks: ["Planks", "🪵"],
-  cobble: ["Cobblestone", "🪨"],
-  glass: ["Glass", "🪟"],
-  fence: ["Fence", "🚧"],
-  farmland: ["Farmland", "🟤"],
-  wheat_crop: ["Wheat Crops", "🌾"],
-  chest: ["Chest", "📦"],
-  furnace: ["Furnace", "🔥"],
-  bed: ["Bed", "🛏️"],
-  coal: ["Coal", "⚫"],
-  iron: ["Iron", "🔩"],
-  gold: ["Gold", "🟨"],
-  diamond: ["Diamond", "💎"],
-  copper: ["Copper", "🟠"],
-  lava: ["Lava", "🌋"],
-  bedrock: ["Bedrock", "⬛"],
-  water: ["Water", "💧"],
-  bucket: ["Empty Bucket", "🪣"],
-  water_bucket: ["Water Bucket", "🪣💧"],
-  seeds: ["Wheat Seeds", "🌱"],
-  wheat: ["Wheat", "🌾"],
-  carrot: ["Carrot", "🥕"],
-  potato: ["Potato", "🥔"],
-  raw_meat: ["Raw Meat", "🥩"],
-  cooked_meat: ["Cooked Meat", "🍖"],
-  emerald: ["Emerald", "💚"],
-  stick: ["Stick", "🪵"],
-  wood_sword: ["Wood Sword", "🗡️"],
-  stone_sword: ["Stone Sword", "⚔️"],
-  iron_sword: ["Iron Sword", "⚔️"],
-  diamond_sword: ["Diamond Sword", "💎"]
-};
-
-const PLACEABLE = new Set([
-  "grass", "dirt", "stone", "sand",
-  "wood", "leaves", "planks", "cobble",
-  "glass", "fence", "farmland",
-  "wheat_crop", "chest", "furnace", "bed"
-]);
-
-const RECIPES = [
-  ["planks", 4, {wood: 1}],
-  ["stick", 4, {planks: 2}],
-  ["cobble", 1, {stone: 1}],
-  ["fence", 3, {planks: 4, stick: 2}],
-  ["chest", 1, {planks: 8}],
-  ["furnace", 1, {cobble: 8}],
-  ["bucket", 1, {iron: 3}],
-  ["glass", 4, {sand: 4, coal: 1}],
-  ["wood_sword", 1, {planks: 2, stick: 1}],
-  ["stone_sword", 1, {stone: 2, stick: 1}],
-  ["iron_sword", 1, {iron: 2, stick: 1}],
-  ["diamond_sword", 1, {diamond: 2, stick: 1}],
-  ["farmland", 4, {dirt: 4}],
-  ["wheat_crop", 4, {seeds: 4}],
-  ["bed", 1, {planks: 3, leaves: 3}]
-];
-
-// ---------------------------------------
-// SAVE DATA
-// ---------------------------------------
-
-let saved = {};
+let stored = {};
 
 try {
-  saved = JSON.parse(
-    localStorage.getItem(SAVE) || "{}"
-  );
+  stored = JSON.parse(localStorage.getItem(SAVE) || "{}");
 } catch {
-  saved = {};
+  stored = {};
 }
 
 const edits = new Map(
-  Array.isArray(saved.edits) ? saved.edits : []
+  Array.isArray(stored.edits) ? stored.edits : []
 );
 
-const chestData = saved.chests || {};
+const chestData = stored.chests || {};
 
 const inventory = {
-  grass: 20,
-  dirt: 16,
-  stone: 10,
-  sand: 10,
-  wood: 10,
-  leaves: 10,
-  planks: 8,
-  cobble: 8,
-  glass: 5,
-  fence: 6,
-  bucket: 1,
-  water_bucket: 0,
+  1: 24,
+  2: 16,
+  3: 20,
+  4: 16,
+  5: 12,
+  6: 8,
+  8: 6,
+  11: 8,
+  13: 2,
+  14: 1,
+  22: 8,
+  25: 4,
+  31: 1,
   seeds: 8,
-  cooked_meat: 5,
-  raw_meat: 0,
-  stick: 4
+  bucket: 1,
+  cooked: 4,
+  hydrogen: 8,
+  oxygen: 6,
+  carbon: 4,
+  sodium: 3,
+  chlorine: 3,
+  nitrogen: 3,
+  ...stored.inventory
 };
 
-for (const [id, quantity] of Object.entries(
-  saved.inventory || {}
-)) {
-  if (
-    ITEMS[id] &&
-    Number.isInteger(quantity) &&
-    quantity >= 0
-  ) {
-    inventory[id] = quantity;
-  }
-}
-
-const hotbar = [
-  "grass",
-  "dirt",
-  "stone",
-  "wood",
-  "planks",
-  "glass",
-  "fence",
-  "bucket",
-  "water_bucket"
-];
+const slots =
+  Array.isArray(stored.slots) &&
+  stored.slots.length === 9
+    ? stored.slots
+    : [
+        B.GRASS,
+        B.DIRT,
+        B.STONE,
+        B.SAND,
+        B.WOOD,
+        B.GRAVEL,
+        B.TNT,
+        B.LAB,
+        "bucket"
+      ];
 
 let selected = 0;
-let health = saved.health ?? 100;
-let hunger = saved.hunger ?? 100;
-let level = saved.level ?? 1;
+let health = stored.health ?? 20;
+let food = stored.food ?? 20;
 let creative = false;
 let flying = false;
+let playing = false;
+let panel = "";
+let chestKey = "";
+let noticeTime = 0;
 
-const itemKey = (x, y, z) => `${x},${y},${z}`;
-
-function addItem(id, count = 1) {
-  inventory[id] = (inventory[id] || 0) + count;
+function add(id, n = 1) {
+  inventory[id] = (inventory[id] || 0) + n;
 }
 
-function removeItem(id, count = 1) {
-  if ((inventory[id] || 0) < count) {
-    return false;
-  }
-
-  inventory[id] -= count;
+function take(id, n = 1) {
+  if ((inventory[id] || 0) < n) return false;
+  inventory[id] -= n;
   return true;
 }
 
-// ---------------------------------------
-// ORIGINAL PIXEL ART TEXTURES
-// ---------------------------------------
+function notify(message) {
+  $("notice").textContent = message;
+  noticeTime = 2.8;
+}
 
-const TEXTURE_NAMES = [
-  "grass_top",
-  "grass_side",
-  "dirt",
-  "stone",
-  "sand",
-  "wood_side",
-  "wood_top",
-  "leaves",
-  "planks",
-  "cobble",
-  "glass",
-  "fence",
-  "farmland",
-  "wheat_crop",
-  "chest",
-  "furnace",
-  "bed",
-  "coal",
-  "iron",
-  "gold",
-  "diamond",
-  "copper",
-  "lava",
-  "bedrock",
-  "water"
-];
+/* =========================================
+   TERRAIN NOISE
+========================================= */
 
-const BASE = {
-  grass_top: 0x65b545,
-  grass_side: 0x8b6140,
-  dirt: 0x855938,
-  stone: 0x8a8e94,
-  sand: 0xe2d295,
-  wood_side: 0x896039,
-  wood_top: 0xb79769,
-  leaves: 0x348b4c,
-  planks: 0xc6975c,
-  cobble: 0x74777c,
-  glass: 0x93dbe8,
-  fence: 0x9e7046,
-  farmland: 0x65452f,
-  wheat_crop: 0x91b43d,
-  chest: 0xa27842,
-  furnace: 0x5c6269,
-  bed: 0xbb414e,
-  coal: 0x888b8f,
-  iron: 0x898b8d,
-  gold: 0x898b8d,
-  diamond: 0x888c8d,
-  copper: 0x8b898a,
-  lava: 0xeb681c,
-  bedrock: 0x30343a,
-  water: 0x368dca
-};
-
-function random2(x, z, seed = 0) {
+function hash(x, z, s = 0) {
   const n = Math.sin(
-    x * 127.1 +
-    z * 311.7 +
-    seed * 67.3
-  ) * 43758.5453123;
-
+    x * 127.1 + z * 311.7 + s * 79.7
+  ) * 43758.5453;
   return n - Math.floor(n);
 }
 
-const atlas = document.createElement("canvas");
-atlas.width = 128;
-atlas.height =
-  Math.ceil(TEXTURE_NAMES.length / 8) * 16;
+function smooth(v) {
+  return v * v * (3 - 2 * v);
+}
 
-const ctx = atlas.getContext("2d");
+function noise(x, z, s = 0) {
+  const a = Math.floor(x);
+  const b = Math.floor(z);
+  const u = smooth(x - a);
+  const v = smooth(z - b);
 
-for (let t = 0; t < TEXTURE_NAMES.length; t++) {
-  const name = TEXTURE_NAMES[t];
-  const image = ctx.createImageData(16, 16);
+  const l = THREE.MathUtils.lerp;
 
-  for (let y = 0; y < 16; y++) {
-    for (let x = 0; x < 16; x++) {
-      let base = BASE[name];
-
-      let variation =
-        (random2(x, y, t) - .5) * 50;
-
-      if (name === "grass_side" && y < 3) {
-        base = 0x61b345;
-      }
-
-      if (
-        name === "wood_side" ||
-        name === "fence"
-      ) {
-        if (x % 4 === 0) variation -= 35;
-      }
-
-      if (name === "wood_top") {
-        const radius = Math.floor(
-          Math.max(
-            Math.abs(x - 7.5),
-            Math.abs(y - 7.5)
-          )
-        );
-
-        if (radius % 3 === 0) {
-          variation -= 40;
-        }
-      }
-
-      if (name === "planks" && y % 5 === 0) {
-        variation -= 35;
-      }
-
-      if (
-        name === "cobble" &&
-        (x % 6 === 0 || y % 5 === 0)
-      ) {
-        variation -= 35;
-      }
-
-      if (
-        name === "glass" &&
-        (x === 0 || x === 15 ||
-         y === 0 || y === 15)
-      ) {
-        variation += 60;
-      }
-
-      if (name === "farmland" && x % 4 === 0) {
-        variation -= 38;
-      }
-
-      if (name === "wheat_crop" && x % 4 === 2) {
-        variation += 48;
-      }
-
-      if (
-        name === "chest" &&
-        (x === 1 || x === 14 ||
-         y === 3 || y === 12)
-      ) {
-        variation -= 55;
-      }
-
-      if (
-        name === "furnace" &&
-        x > 3 && x < 12 &&
-        y > 6 && y < 13
-      ) {
-        variation -= 65;
-      }
-
-      const oreColors = {
-        coal: 0x252525,
-        iron: 0xcda486,
-        gold: 0xffd33d,
-        diamond: 0x43e0e4,
-        copper: 0xca7957
-      };
-
-      if (
-        oreColors[name] &&
-        random2(
-          Math.floor(x / 3),
-          Math.floor(y / 3),
-          t
-        ) > .7
-      ) {
-        base = oreColors[name];
-      }
-
-      if (name === "lava") {
-        variation += random2(
-          Math.floor(x / 3),
-          Math.floor(y / 3), t
-        ) > .5 ? 50 : -30;
-      }
-
-      const index = (y * 16 + x) * 4;
-
-      image.data[index] = Math.max(
-        0,
-        Math.min(
-          255,
-          ((base >> 16) & 255) + variation
-        )
-      );
-
-      image.data[index + 1] = Math.max(
-        0,
-        Math.min(
-          255,
-          ((base >> 8) & 255) + variation
-        )
-      );
-
-      image.data[index + 2] = Math.max(
-        0,
-        Math.min(
-          255,
-          (base & 255) + variation
-        )
-      );
-
-      image.data[index + 3] = 255;
-    }
-  }
-
-  ctx.putImageData(
-    image,
-    (t % 8) * 16,
-    Math.floor(t / 8) * 16
+  return l(
+    l(hash(a, b, s), hash(a + 1, b, s), u),
+    l(hash(a, b + 1, s), hash(a + 1, b + 1, s), u),
+    v
   );
 }
 
-const texture = new THREE.CanvasTexture(atlas);
-texture.magFilter = THREE.NearestFilter;
-texture.minFilter = THREE.NearestFilter;
-texture.generateMipmaps = false;
-texture.colorSpace = THREE.SRGBColorSpace;
+function fractal(x, z, s = 0) {
+  let sum = 0;
+  let total = 0;
+  let amp = 1;
+  let freq = .018;
 
-const blockMaterial = new THREE.MeshLambertMaterial({
-  map: texture,
-  side: THREE.DoubleSide,
-  vertexColors: true
-});
-
-function textureFor(id, face) {
-  if (id === "grass") {
-    if (face === 2) return "grass_top";
-    if (face === 3) return "dirt";
-    return "grass_side";
+  for (let i = 0; i < 4; i++) {
+    sum += noise(x * freq, z * freq, s + 11 * i) * amp;
+    total += amp;
+    amp *= .5;
+    freq *= 2;
   }
 
-  if (id === "wood") {
-    if (face === 2 || face === 3) {
-      return "wood_top";
-    }
-
-    return "wood_side";
-  }
-
-  if (TEXTURE_NAMES.includes(id)) {
-    return id;
-  }
-
-  return "stone";
+  return sum / total;
 }
 
-function faceUV(id, face) {
-  const name = textureFor(id, face);
-  const i = TEXTURE_NAMES.indexOf(name);
-  const column = i % 8;
-  const row = Math.floor(i / 8);
+const columnCache = new Map();
 
-  const left = (column * 16 + .3) / atlas.width;
-  const right =
-    (column * 16 + 15.7) / atlas.width;
+function column(x, z) {
+  const k = `${x},${z}`;
+  if (columnCache.has(k)) return columnCache.get(k);
 
-  const top =
-    1 - (row * 16 + .3) / atlas.height;
+  const climate = fractal(x + 600, z - 400, 20);
 
-  const bottom =
-    1 - (row * 16 + 15.7) / atlas.height;
+  const type =
+    climate < .35 ? "Desert" :
+    climate > .67 ? "Mountains" : "Plains";
 
-  return [
-    [left, bottom],
-    [left, top],
-    [right, top],
-    [right, bottom]
-  ];
-}
-
-// ---------------------------------------
-// WORLD GENERATION
-// ---------------------------------------
-
-function terrainHeight(x, z) {
   let h = Math.floor(
-    Math.sin(x * .015) * 6 +
-    Math.cos(z * .014) * 6 +
-    Math.sin((x - z) * .008) * 5 +
-    Math.sin(x * .1) * 2
+    (fractal(x, z, 5) - .44) * 24 +
+    (fractal(x, z, 33) - .5) * 5 + 6
   );
 
-  if (Math.hypot(x, z - 4) < 20) {
-    h = Math.max(4, h);
+  if (type === "Mountains") {
+    h += Math.floor(15 * fractal(x + 40, z - 40, 96));
   }
 
-  // A level region for the village.
+  if (type === "Desert") {
+    h = Math.floor((fractal(x, z, 5) - .45) * 10 + 4);
+  }
+
+  if (Math.hypot(x, z) < 12) h = Math.max(h, 4);
+
   if (
-    x >= 44 && x <= 80 &&
-    z >= 18 && z <= 54
-  ) {
-    h = 5;
-  }
+    x >= 30 && x <= 55 &&
+    z >= 16 && z <= 42
+  ) h = 5;
 
-  return h;
+  h = THREE.MathUtils.clamp(h, -40, 49);
+
+  const value = {height: h, biome: type};
+
+  if (columnCache.size > 18000) columnCache.clear();
+  columnCache.set(k, value);
+
+  return value;
 }
+
+const height = (x, z) => column(x, z).height;
+const biome = (x, z) => column(x, z).biome;
 
 function treeAt(x, z) {
   return (
     x % 9 === 0 &&
     z % 9 === 0 &&
-    terrainHeight(x, z) > 2 &&
-    random2(x / 9, z / 9) > .48 &&
-    Math.hypot(x, z - 4) > 10 &&
-    !(x >= 40 && x <= 85 &&
-      z >= 14 && z <= 58)
+    hash(x / 9, z / 9) > .57 &&
+    biome(x, z) === "Plains" &&
+    height(x, z) > 3 &&
+    !(x >= 26 && x <= 59 && z >= 12 && z <= 46)
   );
 }
 
-function villageBlock(x, y, z) {
-  if (
-    x < 44 || x > 80 ||
-    z < 18 || z > 54
-  ) return null;
+const houses = [
+  [35, 22],
+  [49, 22],
+  [35, 36],
+  [49, 36]
+];
 
-  // Four simple houses.
-  const houses = [
-    [51, 27],
-    [71, 27],
-    [51, 45],
-    [71, 45]
-  ];
-
+function village(x, y, z) {
   for (const [cx, cz] of houses) {
-    const inside =
-      x >= cx - 3 && x <= cx + 3 &&
-      z >= cz - 3 && z <= cz + 3;
-
-    if (!inside) continue;
+    if (
+      x < cx - 3 || x > cx + 3 ||
+      z < cz - 3 || z > cz + 3
+    ) continue;
 
     const wall =
-      x === cx - 3 ||
-      x === cx + 3 ||
-      z === cz - 3 ||
-      z === cz + 3;
+      Math.abs(x - cx) === 3 ||
+      Math.abs(z - cz) === 3;
 
     if (
-      x === cx &&
-      z === cz - 3 &&
+      x === cx && z === cz - 3 &&
       (y === 6 || y === 7)
-    ) return null;
+    ) return B.AIR;
 
-    if (y === 6 && x === cx && z === cz) {
-      return "bed";
-    }
-
-    if (
-      y >= 6 && y <= 8 &&
-      wall
-    ) {
+    if (wall && y >= 6 && y <= 8) {
       if (
         y === 7 &&
         ((x === cx && z === cz + 3) ||
          (x === cx + 3 && z === cz))
-      ) {
-        return "glass";
-      }
+      ) return B.GLASS;
 
-      return "planks";
+      return B.PLANKS;
     }
 
-    if (y === 9) {
-      return "wood";
-    }
-  }
+    if (y === 9) return B.WOOD;
 
-  // Village farming area.
-  if (
-    x >= 58 && x <= 65 &&
-    z >= 37 && z <= 43
-  ) {
-    if (y === 6) return "farmland";
-    if (y === 7) return "wheat_crop";
+    if (
+      x === cx + 1 &&
+      z === cz + 1 &&
+      y === 6
+    ) return B.CHEST;
   }
 
   if (
-    x === 61 &&
-    z === 30 &&
-    y === 6
+    x >= 38 && x <= 45 &&
+    z >= 29 && z <= 33
   ) {
-    return "chest";
+    if (y === 6) return B.FARMLAND;
+    if (y === 7) return B.CROPS;
   }
 
   return null;
 }
 
-function cave(x, y, z) {
-  if (y > -7 || y < LOWEST_Y + 2) {
-    return false;
-  }
+function natural(x, y, z) {
+  if (y <= MIN_Y) return B.BEDROCK;
+  if (y > MAX_Y) return B.AIR;
 
-  const n =
-    Math.sin(x * .16 + y * .11) +
-    Math.cos(z * .13 - y * .12) +
-    Math.sin((x + z) * .09 + y * .16);
+  const building = village(x, y, z);
+  if (building !== null) return building;
 
-  return n > 2.4;
-}
+  const h = height(x, z);
+  const type = biome(x, z);
 
-function naturalBlock(x, y, z) {
-  if (y <= LOWEST_Y) {
-    return "bedrock";
-  }
-
-  const village = villageBlock(x, y, z);
-
-  if (village) return village;
-
-  const surface = terrainHeight(x, z);
-
-  // Tree trunks and leaves.
-  if (y > surface) {
+  if (y > h) {
     for (
       let tx = Math.floor((x - 2) / 9) * 9;
       tx <= x + 2;
@@ -641,675 +469,1120 @@ function naturalBlock(x, y, z) {
       ) {
         if (!treeAt(tx, tz)) continue;
 
-        const th = terrainHeight(tx, tz);
+        const th = height(tx, tz);
         const dx = Math.abs(x - tx);
         const dz = Math.abs(z - tz);
 
         if (
-          dx === 0 &&
-          dz === 0 &&
-          y > th &&
+          dx === 0 && dz === 0 &&
           y <= th + 4
-        ) {
-          return "wood";
-        }
+        ) return B.WOOD;
 
         if (
-          dx <= 2 &&
-          dz <= 2 &&
-          dx + dz <= 3 &&
-          y >= th + 3 &&
-          y <= th + 6
-        ) {
-          return "leaves";
-        }
+          dx <= 2 && dz <= 2 &&
+          dx + dz < 4 &&
+          y >= th + 3 && y <= th + 6
+        ) return B.LEAVES;
       }
     }
 
-    return null;
-  }
-
-  if (y === surface) {
-    return surface <= 0 ? "sand" : "grass";
-  }
-
-  if (y >= surface - 3) {
-    return "dirt";
-  }
-
-  if (cave(x, y, z)) {
     if (
-      y < -30 &&
-      random2(x + y, z + y) > .65
-    ) {
-      return "lava";
-    }
+      type === "Desert" &&
+      x % 11 === 0 &&
+      z % 11 === 0 &&
+      hash(x / 11, z / 11) > .67 &&
+      y <= h + 3
+    ) return B.CACTUS;
 
-    return null;
+    return y <= 1 ? B.WATER : B.AIR;
   }
 
-  const ore = random2(
-    x * 7 + y * 11,
-    z * 13 + y * 17
-  );
-
-  if (y < -30 && ore > .99) {
-    return "diamond";
+  if (y === h) {
+    if (type === "Desert") return B.SAND;
+    if (type === "Mountains" && h > 18) return B.STONE;
+    return B.GRASS;
   }
 
-  if (y < -23 && ore > .981) {
-    return "gold";
+  if (y >= h - 3) {
+    return type === "Desert" ? B.SAND : B.DIRT;
   }
 
-  if (y < -13 && ore > .975) {
-    return "iron";
+  const cave =
+    Math.sin(x * .13 + y * .15) +
+    Math.cos(z * .14 - y * .1) +
+    Math.sin((x + z + y) * .09);
+
+  if (y < -5 && cave > 2.46) {
+    return y < -30 && hash(x + y, z, 8) > .85
+      ? B.LAVA
+      : B.AIR;
   }
 
-  if (y < -8 && ore > .972) {
-    return "copper";
-  }
+  const ore = hash(x * 7 + y * 13, z * 9 + y * 17, 4);
 
-  if (y < -5 && ore > .95) {
-    return "coal";
-  }
+  if (y < -25 && ore > .993) return B.DIAMOND;
+  if (y < -14 && ore > .987) return B.GOLD;
+  if (y < 8 && ore > .978) return B.IRON;
+  if (y < 18 && ore > .962) return B.COAL;
 
-  return "stone";
+  return B.STONE;
 }
 
-function getBlock(x, y, z) {
-  const key = itemKey(x, y, z);
+const key = (x, y, z) => `${x},${y},${z}`;
 
-  return edits.has(key)
-    ? edits.get(key)
-    : naturalBlock(x, y, z);
+function block(x, y, z) {
+  if (y <= MIN_Y) return B.BEDROCK;
+  if (y > MAX_Y) return B.AIR;
+
+  const k = key(x, y, z);
+
+  return edits.has(k)
+    ? edits.get(k)
+    : natural(x, y, z);
 }
 
-// ---------------------------------------
-// CHUNK GEOMETRY
-// ---------------------------------------
+/* =========================================
+   TEXTURE GENERATION
+========================================= */
 
-const chunks = new Map();
-const waterMeshes = new Map();
-
-const FACES = [
-  {
-    dir: [1, 0, 0],
-    points: [
-      [.5,-.5,-.5], [.5,.5,-.5],
-      [.5,.5,.5], [.5,-.5,.5]
-    ],
-    light: .82
-  },
-  {
-    dir: [-1, 0, 0],
-    points: [
-      [-.5,-.5,.5], [-.5,.5,.5],
-      [-.5,.5,-.5], [-.5,-.5,-.5]
-    ],
-    light: .8
-  },
-  {
-    dir: [0, 1, 0],
-    points: [
-      [-.5,.5,-.5], [-.5,.5,.5],
-      [.5,.5,.5], [.5,.5,-.5]
-    ],
-    light: 1
-  },
-  {
-    dir: [0, -1, 0],
-    points: [
-      [-.5,-.5,.5], [-.5,-.5,-.5],
-      [.5,-.5,-.5], [.5,-.5,.5]
-    ],
-    light: .65
-  },
-  {
-    dir: [0, 0, 1],
-    points: [
-      [.5,-.5,.5], [.5,.5,.5],
-      [-.5,.5,.5], [-.5,-.5,.5]
-    ],
-    light: .93
-  },
-  {
-    dir: [0, 0, -1],
-    points: [
-      [-.5,-.5,-.5], [-.5,.5,-.5],
-      [.5,.5,-.5], [.5,-.5,-.5]
-    ],
-    light: .78
-  }
+const COLORS = [
+  0x000000, 0x62af42, 0x8b603e, 0x888b90,
+  0xe4ce91, 0x86603c, 0x3c9850, 0x303138,
+  0xa9dcea, 0x2d85c1, 0x36884c, 0xb68a55,
+  0xa3d8e5, 0xa27840, 0x55585e, 0x795337,
+  0x8aba3b, 0x83878b, 0x9f8880, 0xddbc5a,
+  0x3de0da, 0xe55f1d, 0x99978a, 0x777a7e,
+  0x211a33, 0xe23a25, 0xff943a, 0xa55e4c,
+  0xebf4f7, 0x9a8172, 0xb77046, 0xa5c4b3
 ];
 
-const waterMaterial = new THREE.MeshPhongMaterial({
-  color: 0x278ec9,
-  transparent: true,
-  opacity: .72,
-  side: THREE.DoubleSide,
-  depthWrite: false
+const atlas = document.createElement("canvas");
+atlas.width = 128;
+atlas.height = Math.ceil(B.LAB / 8 + 1) * 16;
+
+const ctx = atlas.getContext("2d");
+
+for (let id = 0; id <= B.LAB; id++) {
+  const image = ctx.createImageData(16, 16);
+  const base = COLORS[id] || 0x888888;
+
+  for (let y = 0; y < 16; y++) {
+    for (let x = 0; x < 16; x++) {
+      let shade = (hash(x, y, id) - .5) * 55;
+      let color = base;
+
+      if (id === B.GRASS && y < 3) color = 0x52b638;
+      if (id === B.WOOD && x % 4 === 0) shade -= 34;
+      if (id === B.PLANKS && y % 5 === 0) shade -= 38;
+      if (id === B.FARMLAND && x % 4 === 0) shade -= 25;
+
+      if (
+        id === B.GLASS &&
+        x > 1 && x < 14 &&
+        y > 1 && y < 14
+      ) shade += 35;
+
+      if (
+        [B.COAL, B.IRON, B.GOLD, B.DIAMOND, B.COPPER]
+          .includes(id) &&
+        hash(Math.floor(x / 3), Math.floor(y / 3), id) > .67
+      ) {
+        color =
+          id === B.COAL ? 0x222329 :
+          id === B.IRON ? 0xc8a48a :
+          id === B.GOLD ? 0xffdc39 :
+          id === B.COPPER ? 0xe58946 :
+          0x46f9f3;
+      }
+
+      if (id === B.TNT && y > 5 && y < 10) {
+        color = 0xf7eee0;
+      }
+
+      const i = (y * 16 + x) * 4;
+
+      image.data[i] =
+        THREE.MathUtils.clamp(((color >> 16) & 255) + shade, 0, 255);
+
+      image.data[i + 1] =
+        THREE.MathUtils.clamp(((color >> 8) & 255) + shade, 0, 255);
+
+      image.data[i + 2] =
+        THREE.MathUtils.clamp((color & 255) + shade, 0, 255);
+
+      image.data[i + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(
+    image,
+    (id % 8) * 16,
+    Math.floor(id / 8) * 16
+  );
+}
+
+const atlasTexture = new THREE.CanvasTexture(atlas);
+atlasTexture.magFilter = THREE.NearestFilter;
+atlasTexture.minFilter = THREE.NearestFilter;
+atlasTexture.generateMipmaps = false;
+atlasTexture.colorSpace = THREE.SRGBColorSpace;
+
+const terrainMaterial = new THREE.MeshLambertMaterial({
+  map: atlasTexture,
+  vertexColors: true,
+  side: THREE.DoubleSide
 });
 
-function makeChunk(cx, cz) {
-  const positions = [];
-  const normals = [];
-  const colors = [];
-  const uvs = [];
-  const indices = [];
+const liquidMaterial = new THREE.MeshBasicMaterial({
+  color: 0x4b9dca,
+  transparent: true,
+  opacity: .67,
+  depthWrite: false,
+  side: THREE.DoubleSide
+});
 
-  for (
-    let x = cx * CHUNK;
-    x < (cx + 1) * CHUNK;
-    x++
-  ) {
-    for (
-      let z = cz * CHUNK;
-      z < (cz + 1) * CHUNK;
-      z++
-    ) {
-      for (
-        let y = LOWEST_Y + 1;
-        y <= terrainHeight(x, z) + 8;
-        y++
-      ) {
-        const id = getBlock(x, y, z);
+function uvFor(id) {
+  const x = (id % 8) * 16;
+  const y = Math.floor(id / 8) * 16;
 
-        if (!id) continue;
+  const l = (x + .25) / atlas.width;
+  const r = (x + 15.75) / atlas.width;
+  const t = 1 - (y + .25) / atlas.height;
+  const b = 1 - (y + 15.75) / atlas.height;
 
-        for (let f = 0; f < 6; f++) {
-          const face = FACES[f];
-          const [dx, dy, dz] = face.dir;
+  return [[l, b], [l, t], [r, t], [r, b]];
+}
 
-          if (getBlock(
-            x + dx,
-            y + dy,
-            z + dz
-          )) continue;
+const FACES = [
+  [[1,0,0],[[.5,-.5,-.5],[.5,.5,-.5],[.5,.5,.5],[.5,-.5,.5]],.82],
+  [[-1,0,0],[[-.5,-.5,.5],[-.5,.5,.5],[-.5,.5,-.5],[-.5,-.5,-.5]],.80],
+  [[0,1,0],[[-.5,.5,-.5],[-.5,.5,.5],[.5,.5,.5],[.5,.5,-.5]],1],
+  [[0,-1,0],[[-.5,-.5,.5],[-.5,-.5,-.5],[.5,-.5,-.5],[.5,-.5,.5]],.62],
+  [[0,0,1],[[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5],[-.5,-.5,.5]],.93],
+  [[0,0,-1],[[-.5,-.5,-.5],[-.5,.5,-.5],[.5,.5,-.5],[.5,-.5,-.5]],.75]
+];
 
-          const first = positions.length / 3;
-          const uv = faceUV(id, f);
+/* =========================================
+   CHUNK RENDERING
+========================================= */
 
-          for (let j = 0; j < 4; j++) {
-            const p = face.points[j];
+const chunks = new Map();
+const queued = new Set();
+const buildQueue = [];
+const editedHeights = new Map();
 
-            positions.push(
-              x + p[0],
-              y + p[1],
-              z + p[2]
-            );
+function rememberEdit(x, y, z) {
+  const k = `${x},${z}`;
+  editedHeights.set(
+    k,
+    Math.max(editedHeights.get(k) ?? MIN_Y, y)
+  );
+}
 
-            normals.push(...face.dir);
-            uvs.push(...uv[j]);
+for (const [k] of edits) {
+  const [x, y, z] = k.split(",").map(Number);
+  if ([x, y, z].every(Number.isFinite)) {
+    rememberEdit(x, y, z);
+  }
+}
 
-            colors.push(
-              face.light,
-              face.light,
-              face.light
-            );
+function meshFrom(data, material) {
+  const [pos, normals, uv, color, indices] = data;
+  if (!indices.length) return null;
+
+  const geometry = new THREE.BufferGeometry();
+
+  geometry.setAttribute(
+    "position", new THREE.Float32BufferAttribute(pos, 3)
+  );
+  geometry.setAttribute(
+    "normal", new THREE.Float32BufferAttribute(normals, 3)
+  );
+  geometry.setAttribute(
+    "uv", new THREE.Float32BufferAttribute(uv, 2)
+  );
+  geometry.setAttribute(
+    "color", new THREE.Float32BufferAttribute(color, 3)
+  );
+
+  geometry.setIndex(indices);
+  geometry.computeBoundingSphere();
+
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+  return mesh;
+}
+
+function buildChunk(cx, cz) {
+  const solids = [[], [], [], [], []];
+  const fluids = [[], [], [], [], []];
+  const memo = new Map();
+
+  function get(x, y, z) {
+    const k = key(x, y, z);
+    if (!memo.has(k)) memo.set(k, block(x, y, z));
+    return memo.get(k);
+  }
+
+  for (let x = cx * SIZE; x < (cx + 1) * SIZE; x++) {
+    for (let z = cz * SIZE; z < (cz + 1) * SIZE; z++) {
+      const top = Math.min(
+        MAX_Y,
+        Math.max(
+          height(x, z) + 9,
+          editedHeights.get(`${x},${z}`) ?? MIN_Y
+        )
+      );
+
+      for (let y = MIN_Y + 1; y <= top; y++) {
+        const id = get(x, y, z);
+        if (id === B.AIR) continue;
+
+        const fluid = id === B.WATER ||
+          id === B.LAVA || id === B.FIRE;
+
+        const data = fluid ? fluids : solids;
+
+        for (const [direction, vertices, shade] of FACES) {
+          const [dx, dy, dz] = direction;
+          const neighbor = get(x + dx, y + dy, z + dz);
+
+          if (fluid) {
+            if (
+              neighbor === id ||
+              (neighbor !== B.AIR &&
+               neighbor !== B.WATER &&
+               neighbor !== B.LAVA &&
+               neighbor !== B.FIRE)
+            ) continue;
+          } else if (
+            neighbor !== B.AIR &&
+            neighbor !== B.WATER &&
+            neighbor !== B.LAVA &&
+            neighbor !== B.FIRE
+          ) continue;
+
+          const [p, n, u, c, indices] = data;
+          const start = p.length / 3;
+          const coords = uvFor(id);
+
+          for (let i = 0; i < 4; i++) {
+            const v = vertices[i];
+
+            p.push(x + v[0], y + v[1], z + v[2]);
+            n.push(...direction);
+            u.push(...coords[i]);
+            c.push(shade, shade, shade);
           }
 
           indices.push(
-            first,
-            first + 1,
-            first + 2,
-            first,
-            first + 2,
-            first + 3
+            start, start + 1, start + 2,
+            start, start + 2, start + 3
           );
         }
       }
     }
   }
 
-  const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(
-      positions, 3
-    )
-  );
-
-  geometry.setAttribute(
-    "normal",
-    new THREE.Float32BufferAttribute(
-      normals, 3
-    )
-  );
-
-  geometry.setAttribute(
-    "uv",
-    new THREE.Float32BufferAttribute(
-      uvs, 2
-    )
-  );
-
-  geometry.setAttribute(
-    "color",
-    new THREE.Float32BufferAttribute(
-      colors, 3
-    )
-  );
-
-  geometry.setIndex(indices);
-  geometry.computeBoundingSphere();
-
-  const mesh = new THREE.Mesh(
-    geometry,
-    blockMaterial
-  );
-
-  mesh.userData.terrain = true;
-  scene.add(mesh);
-
-  return mesh;
+  return [
+    meshFrom(solids, terrainMaterial),
+    meshFrom(fluids, liquidMaterial)
+  ];
 }
 
-function waterAt(x, y, z) {
-  const edited = edits.get(itemKey(x, y, z));
+const chunkKey = (x, z) => `${x},${z}`;
 
-  if (edited === "water") return true;
+function discardChunk(k) {
+  const meshes = chunks.get(k);
+  if (!meshes) return;
 
-  if (edited !== undefined) return false;
+  for (const mesh of meshes) {
+    if (!mesh) continue;
+    scene.remove(mesh);
+    mesh.geometry.dispose();
+  }
 
-  return (
-    y === WATER_LEVEL &&
-    terrainHeight(x, z) < WATER_LEVEL
-  );
+  chunks.delete(k);
 }
 
-function makeWater(cx, cz) {
-  const positions = [];
-  const indices = [];
+function enqueue(cx, cz) {
+  const k = chunkKey(cx, cz);
+  if (queued.has(k)) return;
 
-  for (
-    let x = cx * CHUNK;
-    x < (cx + 1) * CHUNK;
-    x++
-  ) {
-    for (
-      let z = cz * CHUNK;
-      z < (cz + 1) * CHUNK;
-      z++
-    ) {
-      // Natural ocean water and placed sources.
-      for (let y = -1; y <= 12; y++) {
-        if (!waterAt(x, y, z)) continue;
+  queued.add(k);
+  buildQueue.push([cx, cz]);
+}
 
-        const first = positions.length / 3;
+function rebuild(x, z) {
+  const cx = Math.floor(x / SIZE);
+  const cz = Math.floor(z / SIZE);
 
-        positions.push(
-          x - .5, y + .4, z - .5,
-          x + .5, y + .4, z - .5,
-          x + .5, y + .4, z + .5,
-          x - .5, y + .4, z + .5
-        );
+  enqueue(cx, cz);
 
-        indices.push(
-          first,
-          first + 1,
-          first + 2,
-          first,
-          first + 2,
-          first + 3
-        );
-      }
+  const mx = ((x % SIZE) + SIZE) % SIZE;
+  const mz = ((z % SIZE) + SIZE) % SIZE;
+
+  if (mx === 0) enqueue(cx - 1, cz);
+  if (mx === SIZE - 1) enqueue(cx + 1, cz);
+  if (mz === 0) enqueue(cx, cz - 1);
+  if (mz === SIZE - 1) enqueue(cx, cz + 1);
+}
+
+let lastCenter = "";
+
+function stream() {
+  const cx = Math.floor(player.x / SIZE);
+  const cz = Math.floor(player.z / SIZE);
+  const center = chunkKey(cx, cz);
+
+  if (center === lastCenter) return;
+  lastCenter = center;
+
+  const needed = new Set();
+
+  for (let x = cx - VIEW; x <= cx + VIEW; x++) {
+    for (let z = cz - VIEW; z <= cz + VIEW; z++) {
+      const k = chunkKey(x, z);
+      needed.add(k);
+      if (!chunks.has(k)) enqueue(x, z);
     }
   }
 
-  if (!indices.length) return;
-
-  const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(
-      positions, 3
-    )
-  );
-
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-
-  const mesh = new THREE.Mesh(
-    geometry,
-    waterMaterial
-  );
-
-  scene.add(mesh);
-  waterMeshes.set(`${cx},${cz}`, mesh);
-}
-
-function removeChunk(cx, cz) {
-  const key = `${cx},${cz}`;
-
-  const terrain = chunks.get(key);
-
-  if (terrain) {
-    scene.remove(terrain);
-    terrain.geometry.dispose();
-    chunks.delete(key);
-  }
-
-  const water = waterMeshes.get(key);
-
-  if (water) {
-    scene.remove(water);
-    water.geometry.dispose();
-    waterMeshes.delete(key);
+  for (const k of [...chunks.keys()]) {
+    if (!needed.has(k)) discardChunk(k);
   }
 }
 
-function rebuild(cx, cz) {
-  const key = `${cx},${cz}`;
+function processChunks() {
+  if (!buildQueue.length) return;
 
-  if (!chunks.has(key)) return;
+  const [cx, cz] = buildQueue.shift();
+  const k = chunkKey(cx, cz);
+  queued.delete(k);
 
-  removeChunk(cx, cz);
+  if (
+    Math.abs(cx - Math.floor(player.x / SIZE)) > VIEW ||
+    Math.abs(cz - Math.floor(player.z / SIZE)) > VIEW
+  ) return;
 
-  chunks.set(key, makeChunk(cx, cz));
-  makeWater(cx, cz);
+  discardChunk(k);
+  chunks.set(k, buildChunk(cx, cz));
 }
 
-function setBlock(x, y, z, id) {
-  if (y <= LOWEST_Y || y > 60) {
-    return false;
-  }
+/* =========================================
+   PHYSICS AND CHEMISTRY
+========================================= */
 
-  edits.set(itemKey(x, y, z), id);
+const updates = [];
+const pending = new Set();
 
-  const cx = Math.floor(x / CHUNK);
-  const cz = Math.floor(z / CHUNK);
+function schedule(x, y, z, delay = 0) {
+  const k = key(x, y, z);
+  if (pending.has(k)) return;
+  if (updates.length >= 1800) return;
 
-  rebuild(cx, cz);
+  pending.add(k);
+  updates.push({x, y, z, k, at: gameSeconds + delay});
+}
 
-  if (x % CHUNK === 0) {
-    rebuild(cx - 1, cz);
-  }
+let gameSeconds = 0;
 
-  if (x % CHUNK === CHUNK - 1) {
-    rebuild(cx + 1, cz);
-  }
+function changeBlock(x, y, z, id, physics = true) {
+  if (y <= MIN_Y || y > MAX_Y) return false;
+  if (block(x, y, z) === id) return false;
 
-  if (z % CHUNK === 0) {
-    rebuild(cx, cz - 1);
-  }
+  edits.set(key(x, y, z), id);
+  rememberEdit(x, y, z);
+  rebuild(x, z);
 
-  if (z % CHUNK === CHUNK - 1) {
-    rebuild(cx, cz + 1);
+  if (physics) {
+    schedule(x, y, z, .1);
+    schedule(x, y + 1, z, .1);
+
+    for (const [dx, dz] of [
+      [1,0], [-1,0], [0,1], [0,-1]
+    ]) {
+      schedule(x + dx, y, z + dz, .1);
+    }
   }
 
   return true;
 }
 
-// ---------------------------------------
-// PLAYER AND MOVEMENT
-// ---------------------------------------
-
-const player = {
-  yaw: 0,
-  pitch: 0,
-  velocityY: 0,
-  grounded: false
-};
-
-camera.position.set(
-  0,
-  terrainHeight(0, 4) + 2.3,
-  4
-);
-
-if (
-  Array.isArray(saved.position) &&
-  saved.position.length === 3 &&
-  saved.position.every(Number.isFinite) &&
-  saved.position[1] > LOWEST_Y + 2
-) {
-  camera.position.fromArray(saved.position);
+function neighbors(x, y, z) {
+  return [
+    [x + 1, y, z],
+    [x - 1, y, z],
+    [x, y + 1, z],
+    [x, y - 1, z],
+    [x, y, z + 1],
+    [x, y, z - 1]
+  ];
 }
 
-const keys = {};
-const movement = new THREE.Vector3();
-
-function solid(x, y, z) {
-  const id = getBlock(
-    Math.round(x),
-    Math.round(y),
-    Math.round(z)
-  );
-
-  return (
-    !!id &&
-    id !== "leaves" &&
-    id !== "lava" &&
-    id !== "water" &&
-    id !== "wheat_crop"
+function nextTo(x, y, z, id) {
+  return neighbors(x, y, z).some(
+    ([a, b, c]) => block(a, b, c) === id
   );
 }
 
-function collision(p) {
-  for (const dx of [-.26, .26]) {
-    for (const dz of [-.26, .26]) {
-      for (const dy of [-1.45, -.8, -.1]) {
-        if (solid(
-          p.x + dx,
-          p.y + dy,
-          p.z + dz
-        )) {
-          return true;
+function react(x, y, z) {
+  const id = block(x, y, z);
+
+  // Gravity for sand and gravel.
+  if (id === B.SAND || id === B.GRAVEL) {
+    if (
+      y > MIN_Y + 1 &&
+      [B.AIR, B.WATER].includes(block(x, y - 1, z))
+    ) {
+      const below = block(x, y - 1, z);
+
+      changeBlock(x, y, z, below, false);
+      changeBlock(x, y - 1, z, id, false);
+
+      schedule(x, y - 1, z, .09);
+      schedule(x, y + 1, z, .09);
+    }
+    return;
+  }
+
+  // Water and lava form stone-like materials.
+  if (id === B.LAVA && nextTo(x, y, z, B.WATER)) {
+    changeBlock(x, y, z, B.OBSIDIAN);
+    return;
+  }
+
+  if (id === B.WATER && nextTo(x, y, z, B.LAVA)) {
+    const lava = neighbors(x, y, z).find(
+      ([a, b, c]) => block(a, b, c) === B.LAVA
+    );
+
+    if (lava) {
+      changeBlock(...lava, B.COBBLE);
+    }
+    return;
+  }
+
+  // Simplified flowing water.
+  if (id === B.WATER || id === B.LAVA) {
+    const spreadChance = id === B.WATER ? .8 : .28;
+
+    if (block(x, y - 1, z) === B.AIR) {
+      changeBlock(x, y - 1, z, id);
+      return;
+    }
+
+    if (Math.random() < spreadChance) {
+      const choices = [
+        [1,0], [-1,0], [0,1], [0,-1]
+      ];
+
+      const [dx, dz] =
+        choices[Math.floor(Math.random() * choices.length)];
+
+      const nx = x + dx;
+      const nz = z + dz;
+
+      // Constrain simulation to prevent unbounded spread.
+      if (
+        Math.abs(nx - player.x) < 20 &&
+        Math.abs(nz - player.z) < 20 &&
+        block(nx, y, nz) === B.AIR
+      ) {
+        changeBlock(nx, y, nz, id);
+      }
+    }
+    return;
+  }
+
+  // Ice melting near heat.
+  if (id === B.ICE) {
+    if (
+      nextTo(x, y, z, B.LAVA) ||
+      nextTo(x, y, z, B.FIRE)
+    ) {
+      changeBlock(x, y, z, B.WATER);
+    }
+    return;
+  }
+
+  // Fire spreads to flammable blocks.
+  if (id === B.FIRE) {
+    for (const [a, b, c] of neighbors(x, y, z)) {
+      const other = block(a, b, c);
+
+      if (
+        [B.WOOD, B.LEAVES, B.PLANKS].includes(other) &&
+        Math.random() < .25
+      ) {
+        changeBlock(a, b, c, B.FIRE);
+      }
+    }
+
+    if (Math.random() < .3) {
+      changeBlock(x, y, z, B.AIR);
+    } else {
+      schedule(x, y, z, 1);
+    }
+    return;
+  }
+
+  // TNT ignites when near fire or lava.
+  if (id === B.TNT) {
+    if (
+      nextTo(x, y, z, B.FIRE) ||
+      nextTo(x, y, z, B.LAVA)
+    ) {
+      explode(x, y, z, 3);
+    }
+    return;
+  }
+
+  // Crop growth is a simplified timed game rule.
+  if (id === B.CROPS) {
+    schedule(x, y, z, 8);
+  }
+}
+
+function explode(x, y, z, radius = 3) {
+  const r2 = radius * radius;
+
+  for (let dx = -radius; dx <= radius; dx++) {
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dz = -radius; dz <= radius; dz++) {
+        const dist2 = dx * dx + dy * dy + dz * dz;
+
+        if (dist2 > r2) continue;
+
+        const a = x + dx;
+        const b = y + dy;
+        const c = z + dz;
+
+        const id = block(a, b, c);
+
+        if (
+          id !== B.BEDROCK &&
+          id !== B.AIR &&
+          id !== B.OBSIDIAN
+        ) {
+          changeBlock(a, b, c, B.AIR, false);
         }
       }
     }
   }
 
-  return false;
-}
-
-function moveAxis(axis, value) {
-  const future = camera.position.clone();
-  future[axis] += value;
-
-  if (collision(future)) return false;
-
-  camera.position[axis] = future[axis];
-  return true;
-}
-
-// ---------------------------------------
-// VILLAGERS
-// ---------------------------------------
-
-const villagers = [];
-const villagerGroups = new Set();
-
-function makeVillager(x, z) {
-  const group = new THREE.Group();
-
-  function part(w, h, d, color, px, py, pz) {
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(w, h, d),
-      new THREE.MeshLambertMaterial({
-        color
-      })
-    );
-
-    mesh.position.set(px, py, pz);
-    group.add(mesh);
+  if (
+    Math.hypot(
+      player.x - x,
+      player.y - y,
+      player.z - z
+    ) < radius + 1 &&
+    !creative
+  ) {
+    health = Math.max(0, health - 8);
   }
 
-  // Body, head, nose, eyes and legs.
-  part(.65, .85, .4, 0x794f3c, 0, .9, 0);
-  part(.52, .52, .5, 0xc99b7b, 0, 1.62, 0);
-  part(.15, .2, .18, 0xa97a60, 0, 1.53, -.33);
-
-  part(.07, .07, .04, 0x224b38, -.13, 1.7, -.27);
-  part(.07, .07, .04, 0x224b38, .13, 1.7, -.27);
-
-  part(.2, .5, .2, 0x4b3330, -.18, .26, 0);
-  part(.2, .5, .2, 0x4b3330, .18, .26, 0);
-
-  group.position.set(
-    x,
-    terrainHeight(Math.round(x), Math.round(z)) + .5,
-    z
-  );
-
-  group.userData.villager = true;
-  group.userData.walkDirection = Math.random() * 6.28;
-  group.userData.walkTimer = 0;
-
-  scene.add(group);
-  villagers.push(group);
+  notify("BOOM! TNT exploded");
 }
 
-function spawnVillagePeople() {
-  if (villagerGroups.has("main-village")) return;
+function updatePhysics() {
+  let budget = 35;
+  const count = updates.length;
 
-  villagerGroups.add("main-village");
+  for (let i = 0; i < count && budget > 0; i++) {
+    const job = updates.shift();
+    if (!job) break;
 
-  [
-    [52, 32],
-    [70, 33],
-    [56, 48],
-    [68, 47]
-  ].forEach(([x, z]) => {
-    makeVillager(x, z);
-  });
-}
-
-function updateVillagers(dt) {
-  for (const v of villagers) {
-    v.userData.walkTimer -= dt;
-
-    if (v.userData.walkTimer <= 0) {
-      v.userData.walkTimer = 2 + Math.random() * 3;
-      v.userData.walkDirection +=
-        (Math.random() - .5) * 2;
-    }
-
-    const a = v.userData.walkDirection;
-    const x = v.position.x + Math.sin(a) * dt * .6;
-    const z = v.position.z + Math.cos(a) * dt * .6;
-
-    if (
-      x < 44 || x > 80 ||
-      z < 18 || z > 54
-    ) {
-      v.userData.walkDirection += Math.PI;
+    if (job.at > gameSeconds) {
+      updates.push(job);
       continue;
     }
 
-    const ground = terrainHeight(
-      Math.round(x),
-      Math.round(z)
+    pending.delete(job.k);
+    react(job.x, job.y, job.z);
+    budget--;
+  }
+}
+
+/* =========================================
+   PLAYER PHYSICS
+========================================= */
+
+const player = {
+  x: 0,
+  y: height(0, 0) + .51,
+  z: 0,
+  vx: 0,
+  vy: 0,
+  vz: 0,
+  yaw: 0,
+  pitch: 0,
+  grounded: false
+};
+
+if (
+  Array.isArray(stored.position) &&
+  stored.position.length === 3 &&
+  stored.position.every(Number.isFinite)
+) {
+  [player.x, player.y, player.z] = stored.position;
+}
+
+const keys = {};
+
+function collision(x, y, z) {
+  for (
+    let a = Math.floor(x - .3 + .5);
+    a <= Math.floor(x + .3 + .5);
+    a++
+  ) {
+    for (
+      let b = Math.floor(y + .5);
+      b <= Math.floor(y + 1.79 + .5);
+      b++
+    ) {
+      for (
+        let c = Math.floor(z - .3 + .5);
+        c <= Math.floor(z + .3 + .5);
+        c++
+      ) {
+        if (solid(block(a, b, c))) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function moveAxis(axis, dist) {
+  const steps = Math.ceil(Math.abs(dist) / .08);
+  if (!steps) return true;
+
+  const step = dist / steps;
+
+  for (let i = 0; i < steps; i++) {
+    const x = player.x + (axis === "x" ? step : 0);
+    const y = player.y + (axis === "y" ? step : 0);
+    const z = player.z + (axis === "z" ? step : 0);
+
+    if (collision(x, y, z)) return false;
+    player[axis] += step;
+  }
+
+  return true;
+}
+
+let lastFallSpeed = 0;
+let hazardTimer = 0;
+
+function updatePlayer(dt) {
+  const fx = -Math.sin(player.yaw);
+  const fz = -Math.cos(player.yaw);
+  const rx = Math.cos(player.yaw);
+  const rz = -Math.sin(player.yaw);
+
+  let dx = 0;
+  let dz = 0;
+
+  if (keys.KeyW) { dx += fx; dz += fz; }
+  if (keys.KeyS) { dx -= fx; dz -= fz; }
+  if (keys.KeyA) { dx -= rx; dz -= rz; }
+  if (keys.KeyD) { dx += rx; dz += rz; }
+
+  const length = Math.hypot(dx, dz);
+  if (length) { dx /= length; dz /= length; }
+
+  const speed =
+    keys.ShiftLeft ? 2.4 :
+    keys.ControlLeft ? 9 : 6;
+
+  const under = block(
+    Math.round(player.x),
+    Math.round(player.y - .52),
+    Math.round(player.z)
+  );
+
+  const inWater = block(
+    Math.round(player.x),
+    Math.round(player.y + .7),
+    Math.round(player.z)
+  ) === B.WATER;
+
+  const friction = under === B.ICE ? 2 : 12;
+
+  player.vx += dx * 38 * dt;
+  player.vz += dz * 38 * dt;
+
+  player.vx *= Math.exp(-friction * dt);
+  player.vz *= Math.exp(-friction * dt);
+
+  const horizontal = Math.hypot(player.vx, player.vz);
+
+  if (horizontal > speed) {
+    player.vx *= speed / horizontal;
+    player.vz *= speed / horizontal;
+  }
+
+  if (flying || creative) {
+    player.vy =
+      (keys.Space ? speed : 0) -
+      (keys.KeyX ? speed : 0);
+  } else {
+    player.vy = Math.max(
+      -25,
+      player.vy - (inWater ? 7 : 24) * dt
     );
 
+    if (inWater && keys.Space) {
+      player.vy = 3.3;
+    } else if (keys.Space && player.grounded) {
+      player.vy = 8.5;
+      player.grounded = false;
+    }
+  }
+
+  if (!moveAxis("x", player.vx * dt)) player.vx = 0;
+  if (!moveAxis("z", player.vz * dt)) player.vz = 0;
+
+  lastFallSpeed = player.vy;
+
+  if (!moveAxis("y", player.vy * dt)) {
     if (
-      !solid(Math.round(x), ground + 1, Math.round(z))
+      player.vy < -11 &&
+      !creative &&
+      !flying &&
+      !inWater
     ) {
-      v.position.set(x, ground + .5, z);
-    } else {
-      v.userData.walkDirection += Math.PI;
+      health = Math.max(
+        0,
+        health - Math.ceil((-player.vy - 10) / 3)
+      );
+      notify("Fall damage!");
     }
 
-    v.rotation.y = a;
+    player.grounded = player.vy < 0;
+    player.vy = 0;
+  } else {
+    player.grounded = false;
   }
-}
 
-let lastChunk = "";
-
-function streamWorld() {
-  const cx = Math.floor(
-    camera.position.x / CHUNK
+  const feet = block(
+    Math.round(player.x),
+    Math.round(player.y + .5),
+    Math.round(player.z)
   );
 
-  const cz = Math.floor(
-    camera.position.z / CHUNK
-  );
-
-  const center = `${cx},${cz}`;
-  if (lastChunk === center) return;
-
-  lastChunk = center;
-
-  const required = new Set();
-
-  for (let x = cx - VIEW; x <= cx + VIEW; x++) {
-    for (let z = cz - VIEW; z <= cz + VIEW; z++) {
-      required.add(`${x},${z}`);
-    }
-  }
-
-  for (const key of [...chunks.keys()]) {
-    if (!required.has(key)) {
-      const [x, z] = key.split(",").map(Number);
-      removeChunk(x, z);
-    }
-  }
-
-  for (const key of required) {
-    if (chunks.has(key)) continue;
-
-    const [x, z] = key.split(",").map(Number);
-
-    chunks.set(key, makeChunk(x, z));
-    makeWater(x, z);
-  }
-
-  // Village residents appear near their village.
   if (
-    cx >= 2 && cx <= 7 &&
-    cz >= 0 && cz <= 6
+    [B.LAVA, B.FIRE].includes(feet) &&
+    !creative
   ) {
-    spawnVillagePeople();
+    hazardTimer += dt;
+
+    if (hazardTimer >= 1) {
+      health = Math.max(0, health - 3);
+      hazardTimer = 0;
+      notify("Burning!");
+    }
+  } else {
+    hazardTimer = 0;
+  }
+
+  if (health <= 0 || player.y < MIN_Y - 5) {
+    player.x = 0;
+    player.z = 0;
+    player.y = height(0, 0) + .51;
+    player.vx = player.vy = player.vz = 0;
+    health = 20;
+    food = Math.max(10, food);
+    notify("Respawned");
+  }
+
+  camera.position.set(
+    player.x,
+    player.y + 1.62,
+    player.z
+  );
+
+  camera.rotation.set(
+    player.pitch,
+    player.yaw,
+    0,
+    "YXZ"
+  );
+}
+
+/* =========================================
+   LOCAL PIXEL FACE GENERATOR
+========================================= */
+
+const npcMaterials = new Map();
+
+function mat(hex) {
+  if (!npcMaterials.has(hex)) {
+    npcMaterials.set(
+      hex,
+      new THREE.MeshLambertMaterial({color: hex})
+    );
+  }
+  return npcMaterials.get(hex);
+}
+
+function faceMaterial(job) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 32;
+  canvas.height = 32;
+
+  const c = canvas.getContext("2d");
+  c.imageSmoothingEnabled = false;
+
+  const rect = (color, x, y, w, h) => {
+    c.fillStyle = color;
+    c.fillRect(x, y, w, h);
+  };
+
+  const hats = {
+    farmer: "#c3a252",
+    librarian: "#e4d6b9",
+    smith: "#64717b",
+    villager: "#73513a"
+  };
+
+  rect("#cda181", 0, 0, 32, 32);
+  rect("#aa765c", 0, 27, 32, 5);
+  rect("#e0af88", 3, 7, 26, 19);
+
+  rect(hats[job], 0, 0, 32, 6);
+
+  rect("#604333", 3, 9, 11, 3);
+  rect("#604333", 19, 9, 10, 3);
+
+  rect("#eee8df", 5, 13, 8, 6);
+  rect("#eee8df", 19, 13, 8, 6);
+
+  rect("#4c7950", 8, 14, 3, 4);
+  rect("#4c7950", 22, 14, 3, 4);
+
+  rect("#202b21", 9, 15, 2, 3);
+  rect("#202b21", 23, 15, 2, 3);
+
+  rect("#aa785b", 13, 17, 7, 10);
+  rect("#e5b28b", 14, 17, 6, 8);
+  rect("#825b43", 11, 29, 11, 2);
+
+  if (job === "librarian") {
+    rect("#44413f", 3, 12, 11, 1);
+    rect("#44413f", 18, 12, 11, 1);
+    rect("#44413f", 14, 14, 4, 1);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  texture.colorSpace = THREE.SRGBColorSpace;
+
+  return new THREE.MeshLambertMaterial({map: texture});
+}
+
+const FACE = {
+  farmer: faceMaterial("farmer"),
+  librarian: faceMaterial("librarian"),
+  smith: faceMaterial("smith"),
+  villager: faceMaterial("villager")
+};
+
+function part(group, w, h, d, material, x, y, z) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    material
+  );
+
+  mesh.position.set(x, y, z);
+  group.add(mesh);
+  return mesh;
+}
+
+/* =========================================
+   VILLAGERS AND ANIMALS
+========================================= */
+
+const villagers = [];
+const animals = [];
+
+let villagersSpawned = false;
+let animalsSpawned = false;
+
+function makeVillager(x, z, job) {
+  const group = new THREE.Group();
+
+  const robe = mat({
+    farmer: 0x877046,
+    librarian: 0xc9c0b3,
+    smith: 0x697984,
+    villager: 0x855940
+  }[job]);
+
+  const skin = mat(0xcda181);
+
+  part(group, .72, .9, .44, robe, 0, .95, 0);
+
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(.6, .6, .6),
+    [skin, skin, skin, skin, skin, FACE[job]]
+  );
+
+  head.position.set(0, 1.68, -.03);
+  group.add(head);
+
+  part(group, .16, .22, .17, mat(0xb58569), 0, 1.54, -.4);
+  part(group, .82, .23, .3, robe, 0, 1.1, -.33);
+  part(group, .2, .48, .22, mat(0x44362f), -.17, .26, 0);
+  part(group, .2, .48, .22, mat(0x44362f), .17, .26, 0);
+
+  group.position.set(x, 5.5, z);
+  group.userData.type = "villager";
+
+  scene.add(group);
+
+  villagers.push({
+    group,
+    job,
+    angle: Math.random() * 6.28,
+    timer: 0
+  });
+}
+
+function makeAnimal(x, z, type) {
+  const group = new THREE.Group();
+
+  const bodyColor =
+    type === "sheep" ? 0xe7e1d7 :
+    type === "pig" ? 0xe6a1a1 : 0x6b5142;
+
+  part(group, .75, .65, 1.05, mat(bodyColor), 0, .83, 0);
+  part(group, .55, .52, .48, mat(bodyColor), 0, .97, -.69);
+
+  for (const lx of [-.25, .25]) {
+    for (const lz of [-.35, .35]) {
+      part(
+        group, .17, .47, .17,
+        mat(0x65554b),
+        lx, .25, lz
+      );
+    }
+  }
+
+  part(group, .08, .08, .05, mat(0x222222), -.16, 1.05, -.96);
+  part(group, .08, .08, .05, mat(0x222222), .16, 1.05, -.96);
+
+  group.position.set(x, height(x, z) + .5, z);
+  group.userData.type = "animal";
+
+  scene.add(group);
+
+  animals.push({
+    group,
+    type,
+    hp: 3,
+    originX: x,
+    originZ: z,
+    angle: Math.random() * 6.28,
+    timer: 0
+  });
+}
+
+function spawnMobs() {
+  if (!animalsSpawned) {
+    animalsSpawned = true;
+    makeAnimal(8, 8, "sheep");
+    makeAnimal(-9, 8, "cow");
+    makeAnimal(8, -10, "pig");
+  }
+
+  if (
+    !villagersSpawned &&
+    Math.abs(player.x - 42) < 40 &&
+    Math.abs(player.z - 29) < 40
+  ) {
+    villagersSpawned = true;
+    makeVillager(37, 26, "farmer");
+    makeVillager(47, 26, "librarian");
+    makeVillager(37, 39, "smith");
+    makeVillager(47, 39, "villager");
   }
 }
 
-// ---------------------------------------
-// INVENTORY AND CRAFTING UI
-// ---------------------------------------
+function updateMobs(dt) {
+  for (const mob of [...villagers, ...animals]) {
+    mob.timer -= dt;
 
-let panelType = null;
-let currentChest = null;
-let playing = false;
+    if (mob.timer <= 0) {
+      mob.timer = 2 + Math.random() * 3;
+      mob.angle += (Math.random() - .5) * 2;
+    }
 
-function notify(text) {
-  $("message").textContent = text;
+    const x = mob.group.position.x +
+      Math.sin(mob.angle) * .4 * dt;
+
+    const z = mob.group.position.z +
+      Math.cos(mob.angle) * .4 * dt;
+
+    const ox = mob.originX ?? 42;
+    const oz = mob.originZ ?? 29;
+    const limit = mob.originX === undefined ? 14 : 8;
+
+    if (
+      Math.abs(x - ox) > limit ||
+      Math.abs(z - oz) > limit
+    ) {
+      mob.angle += Math.PI;
+      continue;
+    }
+
+    const h = height(Math.round(x), Math.round(z));
+
+    if (Math.abs(h + .5 - mob.group.position.y) > 1) {
+      mob.angle += Math.PI;
+      continue;
+    }
+
+    mob.group.position.set(x, h + .5, z);
+    mob.group.rotation.y = mob.angle;
+  }
 }
 
-function row(title, details, buttons) {
-  const root = $("panelItems");
+/* =========================================
+   PANELS
+========================================= */
 
-  const element = document.createElement("div");
-  element.className = "item-row";
+function entry(title, detail, actions) {
+  const div = document.createElement("div");
+  div.className = "entry";
 
   const info = document.createElement("div");
-  info.className = "item-info";
+  info.className = "info";
 
   const strong = document.createElement("strong");
   strong.textContent = title;
 
   const small = document.createElement("small");
-  small.textContent = details;
+  small.textContent = detail;
 
   info.append(strong, small);
-  element.append(info);
+  div.append(info);
 
-  for (const [label, callback, disabled] of buttons) {
+  for (const [label, action, disabled] of actions) {
     const button = document.createElement("button");
     button.textContent = label;
     button.disabled = !!disabled;
-    button.onclick = callback;
-
-    element.append(button);
+    button.onclick = action;
+    div.append(button);
   }
 
-  root.append(element);
+  $("entries").append(div);
 }
 
-function openPanel(type, chestKey = null) {
-  panelType = type;
-  currentChest = chestKey;
+function openPanel(type, chest = "") {
+  panel = type;
+  chestKey = chest;
 
   $("panel").hidden = false;
   $("menu").hidden = true;
@@ -1322,57 +1595,85 @@ function openPanel(type, chestKey = null) {
 }
 
 function closePanel() {
-  panelType = null;
-  currentChest = null;
-
+  panel = "";
   $("panel").hidden = true;
-  $("menu").hidden = true;
 
-  renderer.domElement.requestPointerLock()
-    .catch(() => {
-      $("menu").hidden = false;
-    });
+  renderer.domElement.requestPointerLock().catch(() => {
+    $("menu").hidden = false;
+  });
 }
 
-$("closePanel").onclick = closePanel;
+$("close").onclick = closePanel;
+
+function craft(output, count, ingredients) {
+  if (
+    !Object.entries(ingredients).every(
+      ([id, amount]) => (inventory[id] || 0) >= amount
+    )
+  ) return;
+
+  for (const [id, amount] of Object.entries(ingredients)) {
+    take(id, amount);
+  }
+
+  add(output, count);
+  drawPanel();
+  notify(`Created ${NAME(output)}`);
+}
+
+function recipeRows(recipes) {
+  for (const [output, count, ingredients] of recipes) {
+    const possible = Object.entries(ingredients).every(
+      ([id, amount]) => (inventory[id] || 0) >= amount
+    );
+
+    const detail = Object.entries(ingredients)
+      .map(([id, amount]) => `${amount} ${NAME(itemId(id))}`)
+      .join(" + ");
+
+    entry(
+      `${ICON(output)} ${NAME(output)} ×${count}`,
+      detail,
+      [[
+        "CREATE",
+        () => craft(output, count, ingredients),
+        !possible
+      ]]
+    );
+  }
+}
 
 function drawPanel() {
-  if (!panelType) return;
+  if (!panel) return;
 
-  $("panelItems").replaceChildren();
+  $("entries").replaceChildren();
 
-  $("panelTitle").textContent = {
-    inventory: "INVENTORY",
-    crafting: "CRAFTING",
-    chest: "CHEST STORAGE",
-    furnace: "FURNACE",
-    trade: "VILLAGER TRADING"
-  }[panelType];
+  const titles = {
+    inventory: "🎒 INVENTORY",
+    crafting: "🔨 CRAFTING",
+    chemistry: "⚗️ CHEMISTRY LAB",
+    furnace: "🔥 FURNACE",
+    chest: "📦 CHEST",
+    trading: "💚 VILLAGER TRADING"
+  };
 
-  $("panelDescription").textContent = {
-    inventory: "Select an item for your hotbar.",
-    crafting: "Make items using available materials.",
-    chest: "Store and retrieve items.",
-    furnace: "Cook raw meat with wood or coal.",
-    trade: "Exchange emeralds for goods."
-  }[panelType];
+  $("panelTitle").textContent = titles[panel];
+  $("help").textContent =
+    "This is a simplified game system. Select an available action.";
 
-  if (panelType === "inventory") {
-    for (const [id, count] of Object.entries(inventory)) {
-      if (count <= 0 || !ITEMS[id]) continue;
+  if (panel === "inventory") {
+    for (const [raw, count] of Object.entries(inventory)) {
+      if (count <= 0) continue;
 
-      row(
-        `${ITEMS[id][1]} ${ITEMS[id][0]}`,
+      const id = itemId(raw);
+
+      entry(
+        `${ICON(id)} ${NAME(id)}`,
         `Quantity: ${count}`,
         [[
           "SELECT",
           () => {
-            if (hotbar.includes(id)) {
-              selected = hotbar.indexOf(id);
-            } else {
-              hotbar[selected] = id;
-            }
-
+            slots[selected] = id;
             closePanel();
           }
         ]]
@@ -1380,78 +1681,43 @@ function drawPanel() {
     }
   }
 
-  if (panelType === "crafting") {
-    for (const [id, count, materials] of RECIPES) {
-      const possible = Object.entries(materials)
-        .every(([item, n]) => {
-          return (inventory[item] || 0) >= n;
-        });
+  if (panel === "crafting") recipeRows(RECIPE);
+  if (panel === "chemistry") recipeRows(CHEMISTRY);
+  if (panel === "furnace") recipeRows(SMELTING);
 
-      const requirement = Object.entries(materials)
-        .map(([item, n]) => {
-          return `${n} ${ITEMS[item][0]}`;
-        })
-        .join(" + ");
-
-      row(
-        `${ITEMS[id][1]} ${count} ${ITEMS[id][0]}`,
-        requirement,
-        [[
-          "CRAFT",
-          () => {
-            if (!Object.entries(materials).every(
-              ([item, n]) => {
-                return (inventory[item] || 0) >= n;
-              }
-            )) return;
-
-            for (const [item, n] of Object.entries(materials)) {
-              inventory[item] -= n;
-            }
-
-            addItem(id, count);
-            drawPanel();
-            notify(`Crafted ${ITEMS[id][0]}`);
-          },
-          !possible
-        ]]
-      );
-    }
-  }
-
-  if (panelType === "chest") {
-    chestData[currentChest] ||= {};
-
-    const contents = chestData[currentChest];
+  if (panel === "chest") {
+    chestData[chestKey] ||= {};
+    const contents = chestData[chestKey];
 
     for (const [id, count] of Object.entries(inventory)) {
-      if (count <= 0 || !ITEMS[id]) continue;
+      if (count <= 0) continue;
 
-      row(
-        `${ITEMS[id][0]} — Inventory`,
-        `Available: ${count}`,
+      entry(
+        `${NAME(itemId(id))} — Bag`,
+        `${count} available`,
         [[
           "STORE 1",
           () => {
-            removeItem(id);
-            contents[id] = (contents[id] || 0) + 1;
-            drawPanel();
+            if (take(id)) {
+              contents[id] = (contents[id] || 0) + 1;
+              drawPanel();
+            }
           }
         ]]
       );
     }
 
     for (const [id, count] of Object.entries(contents)) {
-      if (count <= 0 || !ITEMS[id]) continue;
+      if (count <= 0) continue;
 
-      row(
-        `${ITEMS[id][0]} — Chest`,
-        `Stored: ${count}`,
+      entry(
+        `${NAME(itemId(id))} — Chest`,
+        `${count} stored`,
         [[
           "TAKE 1",
           () => {
             contents[id]--;
-            addItem(id);
+            add(id);
             drawPanel();
           }
         ]]
@@ -1459,171 +1725,140 @@ function drawPanel() {
     }
   }
 
-  if (panelType === "furnace") {
-    const possible =
-      (inventory.raw_meat || 0) > 0 &&
-      ((inventory.coal || 0) > 0 ||
-       (inventory.wood || 0) > 0);
-
-    row(
-      "🍖 Cook Raw Meat",
-      "Uses one raw meat and one fuel item",
-      [[
-        "COOK",
-        () => {
-          if (
-            !(inventory.raw_meat > 0) ||
-            !(
-              inventory.coal > 0 ||
-              inventory.wood > 0
-            )
-          ) return;
-
-          const fuel = inventory.coal > 0
-            ? "coal"
-            : "wood";
-
-          inventory[fuel]--;
-          inventory.raw_meat--;
-          addItem("cooked_meat");
-
-          drawPanel();
-        },
-        !possible
-      ]]
-    );
-  }
-
-  if (panelType === "trade") {
-    const trades = [
-      ["wheat", 5, "emerald", 1],
-      ["emerald", 1, "bread", 1],
-      ["emerald", 2, "iron", 1]
-    ];
-
-    // Bread is represented as cooked food
-    // in this simplified game.
-    for (const [cost, count, reward, amount] of trades) {
-      const actualReward = reward === "bread"
-        ? "cooked_meat"
-        : reward;
-
-      row(
-        `${ITEMS[actualReward][1]} ${ITEMS[actualReward][0]}`,
-        `Cost: ${count} ${ITEMS[cost][0]}`,
-        [[
-          "TRADE",
-          () => {
-            if (!removeItem(cost, count)) return;
-
-            addItem(actualReward, amount);
-            drawPanel();
-          },
-          (inventory[cost] || 0) < count
-        ]]
-      );
-    }
+  if (panel === "trading") {
+    recipeRows([
+      ["emerald", 1, {wheat: 5}],
+      [B.PLANKS, 8, {emerald: 1}]
+    ]);
   }
 }
 
-// ---------------------------------------
-// POINTER LOCK AND KEYS
-// ---------------------------------------
+/* =========================================
+   SAVE GAME
+========================================= */
 
-$("play").onclick = () => {
-  panelType = null;
-  $("panel").hidden = true;
+function saveGame(silent = false) {
+  try {
+    localStorage.setItem(SAVE, JSON.stringify({
+      edits: [...edits],
+      chests: chestData,
+      inventory,
+      slots,
+      position: [player.x, player.y, player.z],
+      health,
+      food
+    }));
 
-  renderer.domElement.requestPointerLock()
-    .catch(() => {
-      notify("Click PLAY to resume.");
-    });
+    if (!silent) notify("World saved");
+  } catch {
+    notify("Browser storage is full");
+  }
+}
+
+let resetting = false;
+
+$("reset").onclick = () => {
+  if (!confirm("Delete your saved world?")) return;
+
+  resetting = true;
+  localStorage.removeItem(SAVE);
+  location.reload();
 };
 
-document.addEventListener(
-  "pointerlockchange",
-  () => {
-    playing =
-      document.pointerLockElement === renderer.domElement;
+window.addEventListener("beforeunload", () => {
+  if (!resetting) saveGame(true);
+});
 
-    $("menu").hidden = playing || !!panelType;
-    $("hud").hidden = !playing;
+/* =========================================
+   INPUT
+========================================= */
 
-    if (!playing) {
-      for (const code of Object.keys(keys)) {
-        keys[code] = false;
-      }
-    }
+$("play").onclick = () => {
+  renderer.domElement.requestPointerLock();
+};
+
+renderer.domElement.addEventListener("click", () => {
+  if (!playing && !panel) {
+    renderer.domElement.requestPointerLock();
   }
-);
+});
+
+document.addEventListener("pointerlockchange", () => {
+  playing =
+    document.pointerLockElement === renderer.domElement;
+
+  $("menu").hidden = playing || !!panel;
+  $("hud").hidden = !playing;
+
+  if (!playing) {
+    for (const k of Object.keys(keys)) keys[k] = false;
+  }
+});
 
 document.addEventListener("mousemove", e => {
   if (!playing) return;
 
-  player.yaw -= e.movementX * .002;
+  player.yaw -= e.movementX * .0022;
+
   player.pitch = THREE.MathUtils.clamp(
-    player.pitch - e.movementY * .002,
-    -1.45,
-    1.45
+    player.pitch - e.movementY * .0022,
+    -1.48,
+    1.48
   );
 });
 
 document.addEventListener("keydown", e => {
-  if ([
-    "Space",
-    "ArrowUp",
-    "ArrowDown",
-    "ArrowLeft",
-    "ArrowRight"
-  ].includes(e.code)) {
+  if (["Space", "ArrowUp", "ArrowDown"].includes(e.code)) {
     e.preventDefault();
   }
 
-  if (panelType && e.code === "Escape") {
+  if (panel && e.code === "Escape") {
     closePanel();
     return;
   }
 
   keys[e.code] = true;
-
   if (!playing || e.repeat) return;
 
   if (/^Digit[1-9]$/.test(e.code)) {
-    selected = Number(e.code.slice(-1)) - 1;
+    selected = Number(e.code.at(-1)) - 1;
   }
 
-  if (e.code === "KeyE") {
-    openPanel("inventory");
-  }
-
-  if (e.code === "KeyC") {
-    openPanel("crafting");
-  }
-
-  if (e.code === "KeyP") {
-    saveGame();
-  }
+  if (e.code === "KeyE") openPanel("inventory");
+  if (e.code === "KeyC") openPanel("crafting");
+  if (e.code === "KeyH") openPanel("chemistry");
+  if (e.code === "KeyP") saveGame();
 
   if (e.code === "KeyF") {
     flying = !flying;
-    player.velocityY = 0;
-    notify(flying ? "Flying enabled" : "Flying disabled");
+    player.vy = 0;
+    notify(flying ? "Flying ON" : "Flying OFF");
   }
 
   if (e.code === "KeyG") {
     creative = !creative;
-    notify(creative ? "Creative mode" : "Survival mode");
+    notify(creative ? "CREATIVE" : "SURVIVAL");
   }
 
   if (e.code === "KeyV") {
-    camera.position.set(
-      62,
-      terrainHeight(62, 34) + 2.3,
-      34
-    );
+    player.x = 40;
+    player.y = 5.51;
+    player.z = 28;
+    player.vx = player.vy = player.vz = 0;
+    lastCenter = "";
+    notify("Welcome to village");
+  }
 
-    streamWorld();
-    notify("Welcome to the village!");
+  if (e.code === "KeyR") {
+    if (take("cooked")) {
+      food = Math.min(20, food + 6);
+      notify("Ate cooked meat");
+    } else if (take("meat")) {
+      food = Math.min(20, food + 2);
+      notify("Ate raw meat");
+    } else {
+      notify("No food available");
+    }
   }
 });
 
@@ -1635,541 +1870,405 @@ document.addEventListener("contextmenu", e => {
   e.preventDefault();
 });
 
-// ---------------------------------------
-// BLOCK TARGETING
-// ---------------------------------------
+/* =========================================
+   MINING AND PLACING
+========================================= */
 
+const look = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
-const crosshair = new THREE.Vector2();
 
-function getTarget(distance = 6) {
-  raycaster.setFromCamera(crosshair, camera);
-  raycaster.far = distance;
+function trace() {
+  camera.getWorldDirection(look);
 
-  const targets = [
-    ...chunks.values(),
-    ...villagers
+  let previous = null;
+  let previousKey = "";
+
+  for (let d = .06; d <= REACH; d += .055) {
+    const x = Math.floor(camera.position.x + look.x * d + .5);
+    const y = Math.floor(camera.position.y + look.y * d + .5);
+    const z = Math.floor(camera.position.z + look.z * d + .5);
+
+    const k = key(x, y, z);
+    if (k === previousKey) continue;
+    previousKey = k;
+
+    const id = block(x, y, z);
+
+    if (id !== B.AIR) {
+      return {x, y, z, id, place: previous, distance: d};
+    }
+
+    previous = {x, y, z};
+  }
+
+  return null;
+}
+
+function mobTarget() {
+  const groups = [
+    ...villagers.map(v => v.group),
+    ...animals.map(a => a.group)
   ];
 
-  const hits = raycaster.intersectObjects(
-    targets,
-    true
-  );
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  raycaster.far = REACH;
 
+  const hits = raycaster.intersectObjects(groups, true);
   if (!hits.length) return null;
 
   let object = hits[0].object;
 
   while (
     object.parent &&
-    !object.userData.terrain &&
-    !object.userData.villager
-  ) {
-    object = object.parent;
+    !object.userData.type
+  ) object = object.parent;
+
+  const villager = villagers.find(v => v.group === object);
+  const animal = animals.find(a => a.group === object);
+
+  if (villager) {
+    return {
+      type: "villager",
+      value: villager,
+      distance: hits[0].distance
+    };
   }
 
-  return {
-    hit: hits[0],
-    object
-  };
+  if (animal) {
+    return {
+      type: "animal",
+      value: animal,
+      distance: hits[0].distance
+    };
+  }
+
+  return null;
 }
 
-function targetPosition(hit, inside) {
-  const normal = hit.face.normal.clone()
-    .transformDirection(hit.object.matrixWorld);
+function mine(t) {
+  if (!t || t.id === B.BEDROCK) return;
 
-  const p = hit.point.clone().addScaledVector(
-    normal,
-    inside ? -.02 : .02
-  );
-
-  return {
-    x: Math.round(p.x),
-    y: Math.round(p.y),
-    z: Math.round(p.z)
-  };
-}
-
-let mineCooldown = 0;
-
-// ---------------------------------------
-// WATER BUCKETS
-// ---------------------------------------
-
-function tryCollectWater() {
-  if ((inventory.bucket || 0) <= 0) {
-    notify("You need an empty bucket.");
-    return false;
-  }
-
-  const direction = new THREE.Vector3();
-  camera.getWorldDirection(direction);
-
-  // Check water along the player's line of sight.
-  for (let d = .6; d <= 5; d += .2) {
-    const x = Math.round(
-      camera.position.x + direction.x * d
-    );
-    const y = Math.round(
-      camera.position.y + direction.y * d
-    );
-    const z = Math.round(
-      camera.position.z + direction.z * d
-    );
-
-    if (!waterAt(x, y, z)) continue;
-
-    // Removing naturally generated water creates
-    // an edited empty location at that position.
-    edits.set(itemKey(x, y, z), null);
-
-    inventory.bucket--;
-    addItem("water_bucket");
-
-    rebuild(
-      Math.floor(x / CHUNK),
-      Math.floor(z / CHUNK)
-    );
-
-    notify("Water collected!");
-    return true;
-  }
-
-  notify("Point at water to fill the bucket.");
-  return false;
-}
-
-function tryPlaceWater(position) {
-  if ((inventory.water_bucket || 0) <= 0) {
-    notify("You need a filled water bucket.");
-    return false;
-  }
-
-  if (
-    getBlock(
-      position.x,
-      position.y,
-      position.z
-    )
-  ) {
-    return false;
-  }
-
-  const successful = setBlock(
-    position.x,
-    position.y,
-    position.z,
-    "water"
-  );
-
-  if (!successful) return false;
-
-  inventory.water_bucket--;
-  addItem("bucket");
-
-  notify("Water placed!");
-  return true;
-}
-
-// ---------------------------------------
-// CLICK ACTIONS
-// ---------------------------------------
-
-document.addEventListener("mousedown", e => {
-  if (
-    !playing ||
-    mineCooldown > 0 ||
-    ![0, 2].includes(e.button)
-  ) {
+  if (t.id === B.TNT) {
+    explode(t.x, t.y, t.z);
     return;
   }
 
-  const result = getTarget();
-
-  // Right-click a water source with a bucket.
-  if (
-    e.button === 2 &&
-    hotbar[selected] === "bucket" &&
-    tryCollectWater()
-  ) {
-    mineCooldown = .12;
-    return;
-  }
-
-  if (!result) return;
-
-  const {hit, object} = result;
-
-  if (object.userData.villager) {
-    if (e.button === 2) {
-      openPanel("trade");
-    }
-    return;
-  }
-
-  if (!object.userData.terrain) return;
-
-  const p = targetPosition(hit, true);
-  const id = getBlock(p.x, p.y, p.z);
-
-  if (e.button === 0) {
-    if (!id || id === "bedrock") return;
-
-    const k = itemKey(p.x, p.y, p.z);
-
-    if (
-      id === "chest" &&
-      chestData[k] &&
-      Object.values(chestData[k]).some(
-        amount => amount > 0
-      )
-    ) {
-      notify("Empty the chest before mining it.");
-      return;
+  if (changeBlock(t.x, t.y, t.z, B.AIR)) {
+    if (t.id === B.CROPS) {
+      add("wheat", 2);
+      add("seeds", 2);
+    } else if (![B.WATER, B.LAVA, B.FIRE].includes(t.id)) {
+      add(t.id);
     }
 
-    if (setBlock(p.x, p.y, p.z, null)) {
-      addItem(id);
-      mineCooldown = .12;
-      notify(`Mined ${ITEMS[id]?.[0] || id}`);
-    }
+    notify(`Mined ${NAME(t.id)}`);
+  }
+}
 
+function interact(t) {
+  if (!t) return;
+
+  const held = slots[selected];
+
+  if (
+    [B.WATER, B.LAVA].includes(t.id) &&
+    held === "bucket" &&
+    take("bucket")
+  ) {
+    add(t.id === B.WATER ? "water_bucket" : "lava_bucket");
+    changeBlock(t.x, t.y, t.z, B.AIR);
+    notify("Bucket filled");
     return;
   }
 
-  if (id === "chest") {
-    openPanel("chest", itemKey(p.x, p.y, p.z));
+  if (t.id === B.CHEST) {
+    openPanel("chest", key(t.x, t.y, t.z));
     return;
   }
 
-  if (id === "furnace") {
+  if (t.id === B.FURNACE) {
     openPanel("furnace");
     return;
   }
 
-  if (id === "bed") {
-    health = Math.min(100, health + 20);
-    notify("Rested in bed");
+  if (t.id === B.LAB) {
+    openPanel("chemistry");
     return;
   }
 
-  if (id === "wheat_crop") {
-    setBlock(p.x, p.y, p.z, "farmland");
+  if (t.id === B.TNT) {
+    explode(t.x, t.y, t.z);
+    return;
+  }
 
-    addItem("wheat", 2);
-    addItem("seeds", 2);
-
-    notify("Wheat harvested");
+  if (t.id === B.CROPS) {
+    mine(t);
     return;
   }
 
   if (
-    id === "farmland" &&
-    (inventory.seeds || 0) > 0
+    t.id === B.FARMLAND &&
+    block(t.x, t.y + 1, t.z) === B.AIR &&
+    take("seeds")
   ) {
-    inventory.seeds--;
-
-    setBlock(
-      p.x,
-      p.y,
-      p.z,
-      "wheat_crop"
-    );
-
+    changeBlock(t.x, t.y + 1, t.z, B.CROPS);
     notify("Seeds planted");
     return;
   }
 
-  const q = targetPosition(hit, false);
-  const item = hotbar[selected];
+  if (!t.place) return;
 
-  if (item === "water_bucket") {
-    tryPlaceWater(q);
-    return;
-  }
+  const {x, y, z} = t.place;
 
-  if (!PLACEABLE.has(item)) {
+  if (block(x, y, z) !== B.AIR) return;
+
+  if (held === "water_bucket" || held === "lava_bucket") {
+    if (!take(held)) return;
+
+    add("bucket");
+    changeBlock(
+      x, y, z,
+      held === "water_bucket" ? B.WATER : B.LAVA
+    );
     return;
   }
 
   if (
-    !creative &&
-    (inventory[item] || 0) <= 0
-  ) {
-    notify("Not enough items.");
+    typeof held !== "number" ||
+    held === B.AIR ||
+    held === B.BEDROCK ||
+    held === B.WATER ||
+    held === B.LAVA
+  ) return;
+
+  const overlaps =
+    x + .5 > player.x - .3 &&
+    x - .5 < player.x + .3 &&
+    y + .5 > player.y &&
+    y - .5 < player.y + 1.8 &&
+    z + .5 > player.z - .3 &&
+    z - .5 < player.z + .3;
+
+  if (overlaps) return;
+
+  if (!creative && !take(held)) {
+    notify(`No ${NAME(held)} available`);
     return;
   }
 
-  if (getBlock(q.x, q.y, q.z)) return;
-
-  const insidePlayer =
-    Math.abs(q.x - camera.position.x) < .8 &&
-    Math.abs(q.z - camera.position.z) < .8 &&
-    q.y + .5 > camera.position.y - 1.5 &&
-    q.y - .5 < camera.position.y + .1;
-
-  if (insidePlayer) return;
-
-  if (setBlock(q.x, q.y, q.z, item)) {
-    if (!creative) inventory[item]--;
-    mineCooldown = .1;
-    notify(`${ITEMS[item][0]} placed`);
-  }
-});
-
-// ---------------------------------------
-// SAVE WORLD
-// ---------------------------------------
-
-function saveGame(silent = false) {
-  try {
-    localStorage.setItem(
-      SAVE,
-      JSON.stringify({
-        edits: [...edits],
-        chests: chestData,
-        inventory,
-        position: camera.position.toArray(),
-        health,
-        hunger,
-        level
-      })
-    );
-
-    if (!silent) notify("World saved");
-  } catch {
-    notify("Cannot save: storage limit reached");
-  }
+  changeBlock(x, y, z, held);
+  notify(`Placed ${NAME(held)}`);
 }
 
-let resetting = false;
+let cooldown = 0;
 
-$("reset").onclick = () => {
-  if (confirm("Delete this saved BLOCKVERSE world?")) {
-    resetting = true;
-    localStorage.removeItem(SAVE);
-    location.reload();
+document.addEventListener("mousedown", e => {
+  if (!playing || cooldown > 0) return;
+
+  const t = trace();
+  const mob = mobTarget();
+
+  if (
+    mob &&
+    (!t || mob.distance < t.distance)
+  ) {
+    if (e.button === 2 && mob.type === "villager") {
+      openPanel("trading");
+      return;
+    }
+
+    if (e.button === 0 && mob.type === "animal") {
+      mob.value.hp--;
+
+      if (mob.value.hp <= 0) {
+        scene.remove(mob.value.group);
+
+        const i = animals.indexOf(mob.value);
+        if (i >= 0) animals.splice(i, 1);
+
+        add("meat", 2);
+        notify("Collected raw meat");
+      }
+
+      cooldown = .2;
+      return;
+    }
   }
-};
 
-window.addEventListener("beforeunload", () => {
-  if (!resetting) saveGame(true);
+  if (e.button === 0) mine(t);
+  if (e.button === 2) interact(t);
+
+  cooldown = .14;
 });
 
-// ---------------------------------------
-// HOTBAR
-// ---------------------------------------
+/* =========================================
+   HOTBAR
+========================================= */
 
 const bar = $("hotbar");
 
 for (let i = 0; i < 9; i++) {
-  const slot = document.createElement("div");
-  slot.className = "slot";
+  const div = document.createElement("div");
+  div.className = "slot";
 
   const icon = document.createElement("span");
-  icon.textContent = ITEMS[hotbar[i]][1];
+  const count = document.createElement("small");
 
-  const number = document.createElement("small");
-  number.textContent = i + 1;
-
-  slot.append(icon, number);
-  bar.append(slot);
+  div.append(icon, count);
+  bar.append(div);
 }
 
-// ---------------------------------------
-// MAIN LOOP
-// ---------------------------------------
+function updateHotbar() {
+  [...bar.children].forEach((div, i) => {
+    const id = slots[i];
+
+    div.classList.toggle("active", selected === i);
+    div.classList.toggle("empty", (inventory[id] || 0) <= 0);
+
+    div.querySelector("span").textContent = ICON(id);
+    div.querySelector("small").textContent = inventory[id] || 0;
+  });
+
+  const held = slots[selected];
+
+  $("selection").textContent =
+    `${NAME(held)} (${inventory[held] || 0})`;
+}
+
+/* =========================================
+   MAIN LOOP
+========================================= */
 
 const clock = new THREE.Clock();
 
-let saveTimer = 0;
-let hungerTimer = 0;
-let damageTimer = 0;
+let fpsFrames = 0;
+let fpsTime = 0;
+let uiTime = 0;
+let physicsTime = 0;
+let hungerTime = 0;
+let saveTime = 0;
+let dayTime = 0;
 
-streamWorld();
+stream();
+updateHotbar();
 
-function update() {
-  requestAnimationFrame(update);
+function animate() {
+  requestAnimationFrame(animate);
 
-  const dt = Math.min(
-    .04,
-    clock.getDelta()
-  );
+  const dt = Math.min(.04, clock.getDelta());
+
+  fpsFrames++;
+  fpsTime += dt;
+  gameSeconds += dt;
+
+  if (fpsTime >= 1) {
+    $("fps").textContent =
+      `FPS ${Math.round(fpsFrames / fpsTime)}`;
+
+    fpsFrames = 0;
+    fpsTime = 0;
+  }
 
   if (playing) {
-    camera.rotation.y = player.yaw;
-    camera.rotation.x = player.pitch;
+    updatePlayer(dt);
+    stream();
+    spawnMobs();
+    updateMobs(dt);
 
-    const forward = new THREE.Vector3(
-      -Math.sin(player.yaw),
-      0,
-      -Math.cos(player.yaw)
-    );
+    cooldown = Math.max(0, cooldown - dt);
 
-    const right = new THREE.Vector3(
-      Math.cos(player.yaw),
-      0,
-      -Math.sin(player.yaw)
-    );
+    hungerTime += dt;
+    saveTime += dt;
+    uiTime += dt;
 
-    movement.set(0, 0, 0);
-
-    if (keys.KeyW) movement.add(forward);
-    if (keys.KeyS) movement.sub(forward);
-    if (keys.KeyD) movement.add(right);
-    if (keys.KeyA) movement.sub(right);
-
-    const speed = keys.ShiftLeft ? 12 : 7.5;
-
-    if (movement.lengthSq() > 0) {
-      movement.normalize().multiplyScalar(speed * dt);
-
-      moveAxis("x", movement.x);
-      moveAxis("z", movement.z);
-    }
-
-    if (flying || creative) {
-      if (keys.Space) {
-        moveAxis("y", speed * dt);
-      }
-
-      if (keys.ControlLeft) {
-        moveAxis("y", -speed * dt);
-      }
-
-      player.velocityY = 0;
-    } else {
-      if (keys.Space && player.grounded) {
-        player.velocityY = 8.5;
-        player.grounded = false;
-      }
-
-      player.velocityY = Math.max(
-        -24,
-        player.velocityY - 24 * dt
-      );
-
-      const moved = moveAxis(
-        "y",
-        player.velocityY * dt
-      );
-
-      if (!moved) {
-        player.grounded = player.velocityY <= 0;
-        player.velocityY = 0;
-      } else {
-        const below = camera.position.clone();
-        below.y -= .07;
-
-        player.grounded = collision(below);
-      }
-    }
-
-    // Respawn.
-    if (
-      camera.position.y < LOWEST_Y - 8 ||
-      health <= 0
-    ) {
-      camera.position.set(
-        0,
-        terrainHeight(0, 4) + 2.3,
-        4
-      );
-
-      player.velocityY = 0;
-      health = 100;
-      hunger = Math.max(hunger, 50);
-
-      notify("Respawned at spawn");
-    }
-
-    const px = Math.round(camera.position.x);
-    const py = Math.round(camera.position.y - 1.2);
-    const pz = Math.round(camera.position.z);
-
-    if (
-      getBlock(px, py, pz) === "lava" &&
-      !creative
-    ) {
-      damageTimer += dt;
-
-      if (damageTimer >= 1) {
-        health = Math.max(0, health - 10);
-        damageTimer = 0;
-        notify("Lava damage!");
-      }
-    } else {
-      damageTimer = 0;
-    }
-
-    streamWorld();
-
-    // Update villagers at a reduced frequency.
-    updateVillagers(dt);
-
-    mineCooldown = Math.max(
-      0,
-      mineCooldown - dt
-    );
-
-    hungerTimer += dt;
-
-    if (hungerTimer >= 6) {
-      hungerTimer = 0;
+    if (hungerTime >= 6) {
+      hungerTime = 0;
 
       if (!creative) {
-        hunger = Math.max(0, hunger - 1);
-
-        if (hunger === 0) {
-          health = Math.max(0, health - 1);
-        }
+        food = Math.max(0, food - 1);
+        if (food === 0) health = Math.max(0, health - 1);
       }
     }
 
-    saveTimer += dt;
-
-    if (saveTimer >= 45) {
-      saveTimer = 0;
+    if (saveTime >= 45) {
+      saveTime = 0;
       saveGame(true);
     }
 
-    $("coordinates").textContent =
-      `XYZ ${Math.floor(camera.position.x)} ` +
-      `${Math.floor(camera.position.y)} ` +
-      `${Math.floor(camera.position.z)}`;
+    if (uiTime >= .13) {
+      uiTime = 0;
 
-    $("health").textContent = Math.ceil(health);
-    $("hunger").textContent = Math.ceil(hunger);
-    $("level").textContent = level;
+      $("coords").textContent =
+        `XYZ ${Math.floor(player.x)} ` +
+        `${Math.floor(player.y)} ` +
+        `${Math.floor(player.z)}`;
 
-    $("gamemode").textContent =
-      creative ? "CREATIVE" : "SURVIVAL";
+      $("biome").textContent =
+        biome(Math.floor(player.x), Math.floor(player.z));
 
-    const item = hotbar[selected];
+      $("health").textContent = Math.ceil(health);
+      $("food").textContent = Math.ceil(food);
+      $("mode").textContent = creative ? "CREATIVE" : "SURVIVAL";
+      $("chunks").textContent = `Chunks ${chunks.size}`;
 
-    $("itemName").textContent =
-      `${ITEMS[item][0]} ` +
-      `(${inventory[item] || 0})`;
+      const mob = mobTarget();
+      const t = trace();
 
-    [...bar.children].forEach((slot, i) => {
-      slot.classList.toggle(
-        "selected",
-        i === selected
-      );
+      $("targetName").textContent =
+        mob ? mob.value.job || mob.value.type :
+        t ? NAME(t.id) : "";
 
-      slot.querySelector("span").textContent =
-        ITEMS[hotbar[i]][1];
-    });
+      updateHotbar();
+    }
+  }
+
+  physicsTime += dt;
+
+  if (physicsTime >= .10) {
+    physicsTime = 0;
+    updatePhysics();
+  }
+
+  dayTime += dt * .013;
+
+  const daylight = .5 + .5 * Math.cos(dayTime);
+  ambient.intensity = .55 + daylight * 1.35;
+  sun.intensity = .25 + daylight * 1.3;
+
+  scene.background.setRGB(
+    .07 + daylight * .47,
+    .10 + daylight * .69,
+    .20 + daylight * .73
+  );
+
+  if (fpsFrames % 15 === 0) {
+    $("timeOfDay").textContent =
+      daylight > .4 ? "Day" : "Night";
+  }
+
+  processChunks();
+
+  if (noticeTime > 0) {
+    noticeTime -= dt;
+
+    if (noticeTime <= 0) {
+      $("notice").textContent = "";
+    }
   }
 
   renderer.render(scene, camera);
 }
 
-update();
+camera.position.set(
+  player.x,
+  player.y + 1.62,
+  player.z
+);
+
+animate();
 
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-
   renderer.setSize(innerWidth, innerHeight);
 });
